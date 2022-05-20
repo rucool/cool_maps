@@ -1,0 +1,12 @@
+name: cool_maps
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.2
+  - cartopy
+  - matplotlib
+  - cmocean
+  - oceans
+  - numpy
+
