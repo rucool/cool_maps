@@ -1,7 +1,7 @@
 import os
 import pickle
 import warnings
-from itertools import cycle
+from pathlib import Path
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -9,62 +9,68 @@ import cmocean
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
+from erddapy import ERDDAP
 from oceans.ocfis import spdir2uv, uv2spdir
 
 # Suppresing warnings for a "pretty output."
 warnings.simplefilter("ignore")
 
+# Default projection information in case user does not pass
+proj = dict(
+    map=ccrs.Mercator(), # the projection that you want the map to be in
+    data=ccrs.PlateCarree() # the projection that the data is. 
+    )
 
-def add_argo(ax, df, transform):
-    tdf = df.reset_index()
-    most_recent = tdf.loc[tdf.groupby('argo')['time'].idxmax()]
+def add_bathymetry(ax, lon, lat, elevation,
+                   levels=(-1000),
+                   zorder=5,
+                   transform=proj['data'], 
+                   transform_first=False):
+    """
+    Plot bathymetry lines on map
 
-    if most_recent.shape[0] > 50:
-        custom_cmap = 'black'
-        marker = cycle(['o'])
-    else:
-        custom_cmap = categorical_cmap(10, 5, cmap="tab10")
-        marker = cycle(['o', 'h', 'p'])
-
-    n = 0
-    for float in most_recent.itertuples():
-        ax.plot(float.lon, float.lat, marker=next(marker), markersize=7, markeredgecolor='black', color=custom_cmap.colors[n],
-                label=float.argo,
-                transform=transform)
-        # map_add_legend(ax)
-        n = n + 1
-
-
-def add_all_argo(ax, df, transform):
-    grouped = df.groupby(['longitude (degrees_east)', 'latitude (degrees_north)'])
-    for i, x in grouped:
-        ax.plot(i[0], i[1], marker='o', markersize=7, markeredgecolor='black', color='green', transform=transform)
-
-
-def add_bathymetry(ax, lon, lat, elevation, levels=(-1000), zorder=5):
-    # lon = ds.variables['longitude'][:]
-    # lat = ds.variables['latitude'][:]
-    # elevation = ds.variables['elevation'][:]
-
-    h = ax.contour(lon, lat, elevation, levels, 
+    Args:
+        ax (matplotlib.axes): matplotlib axes
+        lon (array-like): bathymetry longitudes
+        lat (array-like): bathymetry latitudes
+        elevation (array-like): bathymetry elevation data
+        levels (tuple, optional): 
+            Determines the number and positions of the contour lines / regions. Defaults to (-1000).
+        zorder (int, optional): Drawing order for this function on the axes. Defaults to 5.
+        transform (_type_, optional): Tells Cartopy what coordinate system your data are defined in. Defaults to crs.PlateCarree().
+        transform_first (bool, optional): 
+            Indicate that Cartopy points should be transformed before calling the contouring algorithm, which can have a significant impact on speed (it is much faster to transform points than it is to transform patches). Defaults to False.
+    """
+    lons, lats = np.meshgrid(lon, lat)
+    h = ax.contour(lons, lats, elevation, levels, 
                     linewidths=.75, alpha=.5, colors='k', 
-                    transform=ccrs.PlateCarree(), zorder=zorder)
+                    transform=transform, 
+                    transform_first=transform_first, # May speed plotting up
+                    zorder=zorder)
     ax.clabel(h, levels, inline=True, fontsize=6, fmt=fmt)
-    return ax
 
 
-def add_currents(ax, ds, coarsen=None, scale=None, headwidth=None, headlength=None, headaxislength=None):
+def add_currents(ax, ds, 
+                 coarsen=2,
+                 scale=90, 
+                 headwidth=2.75, 
+                 headlength=2.75, 
+                 headaxislength=2.5):
     """
-    Add currents to map
-    :param dsd: dataset
-    :param sub: amount to downsample by
-    :return:
+    Plot currents on map
+
+    Args:
+        ax (matplotlib.axes): matplotlib axes
+        ds (xarray.Dataset): xarray dataset containing lon, lat, u, and v data.
+        coarsen (bool, optional): Coarsen object (downsampling). Defaults to 2.
+        scale (float, optional): Number of data units per arrow length unit, e.g., m/s per plot width; a smaller scale parameter makes the arrow longer.. Defaults to 90.
+        headwidth (float, optional): Head width as multiple of shaft width. Defaults to 2.75.
+        headlength (float, optional): Head length as multiple of shaft width. Defaults to 2.75.
+        headaxislength (float, optional): Head length at shaft intersection. Defaults to 2.5.
+
+    Returns:
+        object: Quiver
     """
-    scale = scale or 90
-    headwidth = headwidth or 2.75
-    headlength = headlength or 2.75
-    headaxislength = headaxislength or 2.5
-    coarsen = coarsen or 2
 
     try:
         qds = ds.coarsen(lon=coarsen, boundary='pad').mean().coarsen(lat=coarsen, boundary='pad').mean()
@@ -95,8 +101,25 @@ def add_currents(ax, ds, coarsen=None, scale=None, headwidth=None, headlength=No
     return q
 
 
-def add_features(ax, extent, edgecolor="black", landcolor="tan", zorder=0):
+def add_features(ax, extent, 
+                 edgecolor="black", 
+                 landcolor="tan",
+                 oceancolor=cfeature.COLORS['water'],
+                 zorder=0):
+    """
+    Automatically add the following features to make the map nicer looking.
+    
+    Adjust axis limits to extent.
+    Set land color.
+    Add rivers, lakes, state lines, and other borders.
 
+    Args:
+        ax (matplotlib.Axis): matplotlib axis
+        extent (tuple or list): extent (x0, x1, y0, y1) of the map in the given coordinate system.
+        edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
+        landcolor (str, optional): Color of land. Defaults to "tan".
+        zorder (int, optional): Drawing order for this function on the axes. Defaults to 0.
+    """
     state_lines = cfeature.NaturalEarthFeature(
         category='cultural',
         name='admin_1_states_provinces_lines',
@@ -108,35 +131,44 @@ def add_features(ax, extent, edgecolor="black", landcolor="tan", zorder=0):
 
     # Axes properties and features
     ax.set_extent(extent)
-    ax.add_feature(cfeature.OCEAN, zorder=zorder)
+    # ax.add_feature(cfeature.OCEAN, zorder=zorder) #cfeature.OCEAN has a major performance hit
+    ax.set_facecolor(oceancolor) # way faster than adding the ocean feature above
     ax.add_feature(LAND, 
                    edgecolor=edgecolor, 
                    facecolor=landcolor,
                    zorder=zorder+10)
     ax.add_feature(cfeature.RIVERS, zorder=zorder+10.2)
-    ax.add_feature(cfeature.LAKES, zorder=zorder+10.2)
+    ax.add_feature(cfeature.LAKES, zorder=zorder+10.2, alpha=0.5)
     ax.add_feature(state_lines, edgecolor=edgecolor, zorder=zorder+10.3)
-    ax.add_feature(cfeature.BORDERS, zorder=zorder+10.3)
-
-
-def add_gliders(ax, df, transform):
-    for g, new_df in df.groupby(level=0):
-        q = new_df.iloc[-1]
-        ax.plot(new_df['longitude'], new_df['latitude'], color='black',
-                linewidth=1.5, transform=ccrs.PlateCarree())
-        ax.plot(q['longitude'], q['latitude'], marker='^', markeredgecolor='black',
-                markersize=8.5, label=g, transform=transform)
-        # map_add_legend(ax)
+    ax.add_feature(cfeature.BORDERS, linestyle='--', zorder=zorder+10.3)
 
 
 def add_legend(ax):
+    """
+    Add legend to your map.
+
+    Args:
+        ax (matplotlib.Axis): matplotlib Axis
+
+    Returns:
+        object: legend handle
+    """
     # Shrink current axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    return leg
 
 
 def add_ticks(ax, extent, fontsize=13):
+    """
+    Calculate and add nicely formatted ticks to your map
+
+    Args:
+        ax (matplotlib.Axis): matplotlib Axis
+        extent (tuple or list): extent (x0, x1, y0, y1) of the map in the given coordinate system.
+        fontsize (int, optional): Font size of tick labels. Defaults to 13.
+    """
     xl = [extent[0], extent[1]]
     yl = [extent[2], extent[3]]
 
@@ -171,25 +203,31 @@ def add_ticks(ax, extent, fontsize=13):
                    labelleft=True, labelright=False,
                    width=1)
 
-    # if grid:
-        # ax.grid(color='k', linestyle='--', zorder=zorder)
-    return ax
-
-
-def add_transects(ax, transects, projection):
-    ax.plot(transects['lon'], transects['lat'], 'r-', transform=projection)
-
 
 def categorical_cmap(nc, nsc, cmap="tab10", continuous=False):
     """
+    Expand your colormap by changing the alpha value of each color.
+    
+    Returns a colormap with nc*nsc different colors, 
+    where for each category there are nsc colors of same hue.
+    
+    
     From ImportanceOfBeingErnest
     https://stackoverflow.com/a/47232942/2643708
-    :param nc: number of categories (colors)
-    :param nsc: number of subcategories (shades for each color)
-    :param cmap: matplotlib colormap
-    :param continuous:
-    :return:
+    
+    Args:
+        nc (int): number of categories (colors)
+        nsc (int): number of subcategories (shades for each color)
+        cmap (str, optional): matplotlib colormap. Defaults to "tab10".
+        continuous (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        ValueError: Too many categories for colormap
+
+    Returns:
+        object: matplotlib colormap
     """
+
     if nc > plt.get_cmap(cmap).N:
         raise ValueError("Too many categories for colormap.")
     if continuous:
@@ -209,6 +247,15 @@ def categorical_cmap(nc, nsc, cmap="tab10", continuous=False):
 
 
 def cmaps(variable):
+    """
+    Pre-defined colormaps for oceanographic variables utilizing cmocean.
+
+    Args:
+        variable (str): variable you are plotting
+
+    Returns:
+        object: matplotlib colormap
+    """
     if variable == 'salinity':
         cmap = cmocean.cm.haline
     elif variable == 'temperature':
@@ -222,23 +269,35 @@ def create(extent,
            proj=ccrs.Mercator(),
            labelsize=14,
            ticks=True,
-           features=True, edgecolor="black", landcolor="tan",
-           ax=None, figsize=(11,8)):
-    """Create a cartopy map within a certain extent. 
+           features=True, 
+           edgecolor="black", 
+           landcolor="tan",
+           oceancolor=cfeature.COLORS['water'],
+           bathymetry=False,
+           isobaths=(-1000, -100),
+           ax=None,
+           figsize=(11,8)):
+    """
+    Create a cartopy map within a certain extent. 
 
     Args:
         extent (tuple or list): Extent (x0, x1, y0, y1) of the map in the given coordinate system.
-        proj (cartopy.crs class, optional): Define a projected coordinate system with flat topology and Euclidean distance.
-            Defaults to ccrs.Mercator().
-        features (bool, optional): Add preferred map settings. 
-            Defaults to True.
-        ax (_type_, optional): Pass matplotlib axis to function. Not necessary if plotting to subplot. 
-            Defaults to None.
-        figsize (tuple, optional): (width, height) of the figure. Defaults to (11, 8).
+        proj (cartopy.crs class, optional): Define a projected coordinate system with flat topology and Euclidean distance. Defaults to ccrs.Mercator().
+        labelsize (int, optional): Font size for axis labels. Defaults to 14.
+        ticks (bool, optional): Calculate appropriately spaced ticks. Defaults to True.
+        features (bool, optional): Add preferred map settings: colors, rivers, lakes, etc.. Defaults to True.
+        edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
+        landcolor (str, optional): Color of land. Defaults to "tan".
+        bathymetry (bool, optional): Download and plot bathymetry on map. Defaults to False.
+        isobaths (tuple or list, optional): Elevation at which to create bathymetric contour lines. Defaults to (-1000, -100)
+        ax (matplotlib.Axis, optional): Pass matplotlib axis to function. Not necessary if plotting to subplot.. Defaults to None.
+        figsize (tuple, optional): (width, height) of the figure. Defaults to (11,8).
 
     Returns:
-        _type_: _description_
+        figure: matplotlib figure
+        axis: matplotlib axis
     """
+
     # If a matplotlib axis is not passed, create a new cartopy/mpl figure
     if not ax:
         fig_init = True
@@ -252,16 +311,21 @@ def create(extent,
         fargs = {
             "edgecolor": edgecolor,
             "landcolor": landcolor,
+            "oceancolor": oceancolor
             }
         add_features(ax, extent, **fargs)
+    else:
+        # Axes properties and features
+        ax.set_extent(extent)
 
-    # # Add bathymetry
-    # if bathy:
-    #     bargs = {
-    #         "isobaths": isobaths,
-    #         "zorder": 1.5      
-    #     }
-    #     map_add_bathymetry(ax, bathy, proj, **bargs)
+    # Add bathymetry
+    if bathymetry:
+        bargs = {
+            "levels": isobaths,
+            "zorder": 1.5,
+        }
+        bathy = get_bathymetry(extent)
+        add_bathymetry(ax, bathy['longitude'], bathy['latitude'], bathy['elevation'], **bargs)
 
     # Add ticks
     if ticks:
@@ -299,10 +363,15 @@ def export_fig(path, fname, script=None, dpi=150):
     Include script to print the script that created the plot for future ref.
 
     Args:
-        path (str or Path): Full file name including path
+        path (str or Path): Path to which you want to export figure
+        fname (str): Filename you want to export the figure as
         script (str, optional): Print name of script on plot. Defaults to None.
         dpi (int, optional): Dots per inch. Defaults to 150.
     """
+    
+    if isinstance(path, str):
+        path = Path(path)
+    
     os.makedirs(path, exist_ok=True)
     
     if script:
@@ -311,7 +380,6 @@ def export_fig(path, fname, script=None, dpi=150):
         plt.figtext(.98, 0.20, f"{script} {now}",  fontsize=10, rotation=90)
         
     plt.savefig(path / fname, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
-    # plt.clf()
 
     
 def fmt(x):
@@ -319,6 +387,39 @@ def fmt(x):
     if s.endswith("0"):
         s = f"{x:.0f}"
     return rf"{s}"
+
+
+def get_bathymetry(extent=(-100, -45, 5, 46)):
+    """
+    Function to select bathymetry within a bounding box.
+    This function pulls GEBCO 2014 bathy data from hfr.marine.rutgers.edu 
+
+    Args:
+        extent (tuple, optional): Cartopy bounding box. Defaults to (-100, -45, 5, 46).
+
+    Returns:
+        xarray.Dataset: xarray Dataset containing bathymetry data
+    """
+    lons = extent[:2]
+    lats = extent[2:]
+
+    e = ERDDAP(
+        server="https://hfr.marine.rutgers.edu/erddap/",
+        protocol="griddap"
+    )
+
+    e.dataset_id = "bathymetry_gebco_2014_grid"
+
+    e.griddap_initialize()
+
+    # Modify constraints
+    e.constraints["latitude<="] = max(lats)
+    e.constraints["latitude>="] = min(lats)
+    e.constraints["longitude>="] = max(lons)
+    e.constraints["longitude<="] = min(lons)
+
+    # return xarray dataset
+    return e.to_xarray()
 
 
 # function to define major and minor tick locations and major tick labels
@@ -392,12 +493,48 @@ def get_ticks(bounds, dirs, otherbounds):
 
     return minor_ticks, major_ticks, major_tick_labels
 
-def load(figdir):
-    with open(figdir, "rb") as file:
+
+def show_figure(fig):
+
+    # create a dummy figure and use its
+    # manager to display "fig"  
+    dummy = plt.figure()
+    new_manager = dummy.canvas.manager
+    new_manager.canvas.figure = fig
+    fig.set_canvas(new_manager.canvas)
+    
+
+def load_fig(figfile):
+    """
+    Load pickled figure
+
+    Args:
+        figdir (path): Full file path to pickled figure 
+    Returns:
+        object: matplotlib figure
+    """
+    with open(figfile, "rb") as file:
         fig = pickle.load(file)
-    return fig
+    show_figure(fig)    
+    ax = fig.axes
+    return fig, ax
 
 
-def save(fig, figdir):
-    with open(figdir, 'wb') as file:
+def save_fig(fig, figdir, figname):
+    """
+    Save figure as pickle file
+
+    Args:
+        fig (matplotlib.Figure): matplotlib figure
+        figdir (path): Path to save pickled figure to
+        figname (str): Filename to save pickled figure as
+    """
+    if isinstance(figdir, str):
+        figdir = Path(figdir)
+
+    os.makedirs(figdir, exist_ok=True)
+
+    fullfile = figdir / figname
+    
+    with open(fullfile, 'wb') as file:
         pickle.dump(fig, file)

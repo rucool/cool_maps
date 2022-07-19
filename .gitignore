@@ -61,3 +61,5 @@ target/
 # pyenv python configuration file
 .python-version
 .DS_Store
+notebooks/.ipynb_checkpoints/cool_maps_intro-checkpoint.ipynb
+.vscode/settings.json
