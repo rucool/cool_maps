@@ -70,7 +70,7 @@ You can do this with the following command:
 From sources
 ------------
 
-The sources for cool_maps can be downloaded from the `Github repo`_.
+The sources for cool_maps can be downloaded from the Github repo.
 
 You can either clone the public repository:
 

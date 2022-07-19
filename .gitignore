@@ -63,3 +63,4 @@ target/
 .DS_Store
 notebooks/.ipynb_checkpoints/cool_maps_intro-checkpoint.ipynb
 .vscode/settings.json
+junit.xml
