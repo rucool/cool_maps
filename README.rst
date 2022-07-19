@@ -3,29 +3,22 @@ cool_maps
 =========
 
 
-.. .. image:: https://img.shields.io/pypi/v/hfradarpy.svg
-..     :target: https://pypi.python.org/pypi/hfradarpy
+.. .. image:: https://img.shields.io/pypi/v/cool_maps.svg
+..     :target: https://pypi.python.org/pypi/cool_maps
 
-.. .. image:: https://readthedocs.org/projects/hfradarpy/badge/?version=latest
-..         :target: https://hfradarpy.readthedocs.io/en/latest/?version=latest
+.. .. image:: https://readthedocs.org/projects/cool_maps/badge/?version=latest
+..         :target: https://cool_maps.readthedocs.io/en/latest/?version=latest
 ..         :alt: Documentation Status
     
-.. .. image:: https://github.com/<rucool>/hfradarpy/actions/workflows/<WORKFLOW_FILE>/badge.sv
-
-.. .. .. image:: https://circleci.com/gh/rucool/HFRadarPy/tree/master.svg?style=svg
-.. ..    :target: https://circleci.com/gh/rucool/HFRadarPy/tree/master
-
-.. .. image:: https://codecov.io/gh/rucool/hfradarpy/branch/master/graph/badge.svg
-..    :target: https://codecov.io/gh/rucool/hfradarpy
+.. .. image:: https://github.com/rucool/cool_maps/actions/workflows/python-package.yml/badge.sv
 
 
 
-
-Helper functions around the Python toolboxes matplotlib for plotting data, and cartopy for plotting data on maps. These functions are written to easily generate maps using some pre-defined settings that our lab prefers to use.
+Wrapper functions around the cartopy for plotting data on maps. 
+These functions are written to easily generate maps using some pre-defined settings that our lab, Rutgers Center for Ocean Observing Leadership, prefers to use.
 
 
 * Free software: MIT license
-* Documentation: https://hfradarpy.readthedocs.io.
 
 
 Features
@@ -36,7 +29,9 @@ Features
 ============
 Installation
 ============
-
+conda create -n cool_maps python=3.9
+conda activate cool_maps
+conda install --file requirements.txt
 
 Stable release
 --------------
@@ -89,46 +84,4 @@ Or download the `tarball`_:
 
     $ curl -OJL https://github.com/rucool/cool_maps/tarball/master
 
-Once you have a copy of the source, you can should create a new conda/virtual environment:
-
-Create environment
-------------------
-
-Change your current working directory to the location that you
-downloaded cool_maps to.
-
-.. code-block:: console
-
-        $ cd ~/Downloads/cool_maps/
-
-Create conda environment from the included environment_dev.yml file:
-
-.. code-block:: console
-
-        $ conda env create -f environment_dev.yml
-
-Once the environment is done building, you can activate the environment
-by typing:
-
-.. code-block:: console
-
-        $ conda activate cool_maps # OSX/Unix
-
-Once the environment is your active environment. You can install the toolbox to that environment.
-
-.. code-block:: console
-
-    $ python setup.py install
-
-You can also change directory into the root cool_maps directory and install with the following:
-
-.. code-block:: console
-
-    $ pip install .
-
-Or if you are developing new code in the toolbox, you should install this library as 'editable':
-
-.. code-block:: console
-
-    $ pip install --no-deps --force-reinstall --ignore-installed -e .
-
+Once you have a copy of the source, you can should create a new conda/virtual environment following the Installation instructions above.

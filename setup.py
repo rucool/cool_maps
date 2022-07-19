@@ -6,15 +6,9 @@ with open("README.rst") as readme_file:
 
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
-    
-requirements = [
-    # package requirements go here
-    "cartopy", 
-    "cmocean",
-    "matplotlib",
-    "oceans",
-    "numpy"
-]
+
+with open("requirements.txt") as requirements_file:
+    requirements = requirements_file.read()
 
 setup(
     author="Michael Smith",
@@ -29,8 +23,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],   
-    description="Helper functions around the Python toolboxes matplotlib for plotting data, and cartopy for plotting data on maps. These functions are written to easily generate maps using some pre-defined settings that our lab prefers to use.",
-
+    description="Helper functions around cartopy for plotting data on maps. These functions are written to easily generate nice-looking maps.",
     install_requires=requirements,
     license="MIT",
     long_description_content_type="text/x-rst",
