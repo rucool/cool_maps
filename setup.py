@@ -9,8 +9,14 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-with open("requirements.txt") as requirements_file:
-    requirements = requirements_file.read()
+requirements = [
+    "cartopy<0.20",
+    "matplotlib",
+    "cmocean",
+    "oceans",
+    "numpy",
+    "erddapy"
+]
 
 test_requirements = [
     "pytest>=3",

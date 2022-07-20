@@ -26,7 +26,6 @@ requirements:
     - python
     - pip
   run:
-    - python
     # dependencies are defined in setup.py
     {% for dep in data['install_requires'] %}
     - {{ dep.lower() }}
@@ -37,7 +36,7 @@ test:
     - tests
   requires:
     - pytest
-    - pytest-cov
+    # - pytest-cov
   commands:
     - pytest
 
