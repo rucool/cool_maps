@@ -64,3 +64,6 @@ target/
 notebooks/.ipynb_checkpoints/cool_maps_intro-checkpoint.ipynb
 .vscode/settings.json
 junit.xml
+output.png
+*.png
+.vscode/launch.json

@@ -101,10 +101,11 @@ def add_currents(ax, ds,
     return q
 
 
-def add_features(ax, extent, 
+def add_features(ax, 
                  edgecolor="black", 
                  landcolor="tan",
                  oceancolor=cfeature.COLORS['water'],
+                 coast = 'full',
                  zorder=0):
     """
     Automatically add the following features to make the map nicer looking.
@@ -120,6 +121,7 @@ def add_features(ax, extent,
         landcolor (str, optional): Color of land. Defaults to "tan".
         zorder (int, optional): Drawing order for this function on the axes. Defaults to 0.
     """
+    
     state_lines = cfeature.NaturalEarthFeature(
         category='cultural',
         name='admin_1_states_provinces_lines',
@@ -127,10 +129,16 @@ def add_features(ax, extent,
         facecolor='none'
     )
 
-    LAND = cfeature.GSHHSFeature(scale='full')
+    if coast == 'full':
+        LAND = cfeature.GSHHSFeature(scale='full')
+    elif coast == 'high':
+        LAND = cfeature.NaturalEarthFeature('physical', 'land', '10m')
+    elif coast == 'mid':
+        LAND = cfeature.NaturalEarthFeature('physical', 'land', '50m')
+    elif coast == "low":
+        LAND = cfeature.NaturalEarthFeature('physical', 'land', '110m')
 
-    # Axes properties and features
-    ax.set_extent(extent)
+
     # ax.add_feature(cfeature.OCEAN, zorder=zorder) #cfeature.OCEAN has a major performance hit
     ax.set_facecolor(oceancolor) # way faster than adding the ocean feature above
     ax.add_feature(LAND, 
@@ -141,6 +149,9 @@ def add_features(ax, extent,
     ax.add_feature(cfeature.LAKES, zorder=zorder+10.2, alpha=0.5)
     ax.add_feature(state_lines, edgecolor=edgecolor, zorder=zorder+10.3)
     ax.add_feature(cfeature.BORDERS, linestyle='--', zorder=zorder+10.3)
+    
+    # Axes properties and features
+    # ax.set_extent(extent)
 
 
 def add_legend(ax):
@@ -267,15 +278,16 @@ def cmaps(variable):
 
 def create(extent, 
            proj=ccrs.Mercator(),
-           labelsize=14,
-           ticks=True,
            features=True, 
            edgecolor="black", 
            landcolor="tan",
            oceancolor=cfeature.COLORS['water'],
+           ticks=True,
+           gridlines=False,
            bathymetry=False,
            isobaths=(-1000, -100),
            ax=None,
+           labelsize=14,
            figsize=(11,8)):
     """
     Create a cartopy map within a certain extent. 
@@ -284,11 +296,12 @@ def create(extent,
         extent (tuple or list): Extent (x0, x1, y0, y1) of the map in the given coordinate system.
         proj (cartopy.crs class, optional): Define a projected coordinate system with flat topology and Euclidean distance. Defaults to ccrs.Mercator().
         labelsize (int, optional): Font size for axis labels. Defaults to 14.
+        gridlines (bool, optional): Add gridlines. Defaults to False
         ticks (bool, optional): Calculate appropriately spaced ticks. Defaults to True.
         features (bool, optional): Add preferred map settings: colors, rivers, lakes, etc.. Defaults to True.
         edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
         landcolor (str, optional): Color of land. Defaults to "tan".
-        bathymetry (bool, optional): Download and plot bathymetry on map. Defaults to False.
+        bathymetry (bool or tuple, optional): Download and plot bathymetry on map. Defaults to False.
         isobaths (tuple or list, optional): Elevation at which to create bathymetric contour lines. Defaults to (-1000, -100)
         ax (matplotlib.Axis, optional): Pass matplotlib axis to function. Not necessary if plotting to subplot.. Defaults to None.
         figsize (tuple, optional): (width, height) of the figure. Defaults to (11,8).
@@ -308,15 +321,19 @@ def create(extent,
 
     # Make the map pretty
     if features:
+        # Set extent before we 'add features.' This is necessary because 
+        # add_features adds land, coastlines, rivers, lakes, etc. based off 
+        # of the current extent of the window.
+        ax.set_extent(extent)
+
+        # Create dictionary for feature arguments
         fargs = {
             "edgecolor": edgecolor,
             "landcolor": landcolor,
             "oceancolor": oceancolor
             }
-        add_features(ax, extent, **fargs)
-    else:
-        # Axes properties and features
-        ax.set_extent(extent)
+        
+        add_features(ax, **fargs)
 
     # Add bathymetry
     if bathymetry:
@@ -327,13 +344,13 @@ def create(extent,
         bathy = get_bathymetry(extent)
         add_bathymetry(ax, bathy['longitude'], bathy['latitude'], bathy['elevation'], **bargs)
 
-    # Add ticks
+    # Add gridlines using built-in cartopy gridliner
+    if gridlines:
+        ax.gridlines()
+    
+    # Add ticks using custom functions
     if ticks:
         add_ticks(ax, extent)
-
-    # Set labels
-    ax.set_xlabel('Longitude', fontsize=labelsize, fontweight='bold')
-    ax.set_ylabel('Latitude', fontsize=labelsize, fontweight='bold')
 
     # If we generate a figure in this function, we have to return the figure
     # and axis to the calling function.
@@ -423,11 +440,32 @@ def get_bathymetry(extent=(-100, -45, 5, 46)):
 
 
 # function to define major and minor tick locations and major tick labels
-def get_ticks(bounds, dirs, otherbounds):
+def get_ticks(bounds, dirs, otherbounds, 
+              major_spacing=None,
+              minor_spacing=None):
+    """
+    Define major and minor tick locations and major tick labels
+
+    Args:
+        bounds (_type_): _description_
+        dirs (_type_): _description_
+        otherbounds (_type_): _description_
+        major_spacing (_type_, optional): _description_. Defaults to None.
+        minor_spacing (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        list: minor ticks
+        list: major ticks
+        list: major tick labels
+
+    """
+    
     dirs = dirs.lower()
     l0 = np.float(bounds[0])
     l1 = np.float(bounds[1])
     r = np.max([l1 - l0, np.float(otherbounds[1]) - np.float(otherbounds[0])])
+
+    # Pre-defined tick spacing based off of distance in degrees
     if r <= 1.5:
         # <1.5 degrees: 15' major ticks, 5' minor ticks
         minor_int = 1.0 / 12.0
@@ -445,19 +483,44 @@ def get_ticks(bounds, dirs, otherbounds):
         minor_int = 0.5
         major_int = np.float(2)
     elif r <= 30:
-        # <30 degrees: 3d major ticks, 1d minor ticks
+        # <=30 degrees: 3d major ticks, 1d minor ticks
         minor_int = np.float(1)
         major_int = np.float(3)
-    else:
-        # >=30 degrees: 5d major ticks, 1d minor ticks
+    elif r <=50:
+        # <=50 degrees: 5d major ticks, 1d minor ticks
         minor_int = np.float(1)
         major_int = np.float(5)
+    elif r <=80:
+        # <=80 degrees: 10d major ticks, 5d minor ticks
+        minor_int = np.float(5)
+        major_int = np.float(10)
+    elif r <=120:
+        # <=120 degrees: 15d major ticks, 5d minor ticks
+        minor_int = np.float(5)
+        major_int = np.float(15)
+    elif r <=160:
+        # <=160 degrees: 20d major ticks, 5d minor ticks
+        minor_int = np.float(5)
+        major_int = np.float(20)
+    elif r <=250:
+        # <=250 degrees: 30d major ticks, 10d minor ticks
+        minor_int = np.float(10)
+        major_int = np.float(30)
+    else:
+        # >250 degrees: 45d major ticks, 15d minor ticks
+        minor_int = np.float(15)
+        major_int = np.float(45)
 
-    minor_ticks = np.arange(np.ceil(l0 / minor_int) * minor_int, np.ceil(l1 / minor_int) * minor_int + minor_int,
-                            minor_int)
+    minor_ticks = np.arange(
+        np.ceil(l0 / minor_int) * minor_int, 
+        np.ceil(l1 / minor_int) * minor_int + minor_int,
+        minor_int)
     minor_ticks = minor_ticks[minor_ticks <= l1]
-    major_ticks = np.arange(np.ceil(l0 / major_int) * major_int, np.ceil(l1 / major_int) * major_int + major_int,
-                            major_int)
+    
+    major_ticks = np.arange(
+        np.ceil(l0 / major_int) * major_int, 
+        np.ceil(l1 / major_int) * major_int + major_int,
+        major_int)
     major_ticks = major_ticks[major_ticks <= l1]
 
     if major_int < 1:
@@ -538,3 +601,8 @@ def save_fig(fig, figdir, figname):
     
     with open(fullfile, 'wb') as file:
         pickle.dump(fig, file)
+
+
+if __name__ == "__main__":
+    extent = (-90.0, -15.5, 0.0, 48.0)
+    fig, ax = create(extent)

@@ -14,8 +14,9 @@ cool_maps
 
 
 
-Wrapper functions around the cartopy for plotting data on maps. 
-These functions are written to easily generate maps using some pre-defined settings that our lab, Rutgers Center for Ocean Observing Leadership, prefers to use.
+cool_maps is a package containing functions that utilizearound the cartopy for plotting data on maps. 
+
+These functions are written to easily generate maps using pre-defined settings that our lab, Rutgers Center for Ocean Observing Leadership, prefers to use.
 
 
 * Free software: MIT license
@@ -29,43 +30,21 @@ Features
 ============
 Installation
 ============
-conda create -n cool_maps python=3.9
-conda activate cool_maps
-conda install --file requirements.txt
+
 
 Stable release
 --------------
-
-To install cool_maps, run this command in your terminal:
-
-.. code-block:: console
-
-    $ pip install cool_maps
-
-This is the preferred method to install cool_maps, as it will always install the most recent stable release.
-
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
-
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
-
-We also recommend using miniconda to manage your Python environments. Download and follow the `Miniconda installation guide`_ for the appropriate
+We recommend using miniconda to manage your Python environments. Download and follow the `Miniconda installation guide`_ for the appropriate
 Miniconda installer for your operating system. 
 
 .. _Miniconda installation guide: http://conda.pydata.org/miniconda.html
 
-Make sure to add the channel, `conda-forge`_, to your .condarc. You can
-find out more about conda-forge from their website:
-
-.. _conda-forge: https://conda-forge.org/
-
-You can do this with the following command:
+Install with conda:
 
 .. code-block:: console
 
-        conda config --add channels conda-forge
+    conda install -c conda-forge ioos_qc
+
 
 From sources
 ------------
@@ -84,20 +63,33 @@ Or download the `tarball`_:
 
     $ curl -OJL https://github.com/rucool/cool_maps/tarball/master
 
-Once you have a copy of the source, you can should create a new conda/virtual environment following the Installation instructions above.
+
+=======================
+Development and Testing
+=======================
+
+Create a conda environment:
+---------------------------
+.. code-block:: console
+
+    conda create -n cool_maps python=3.9
+
+.. code-block:: console
+    
+    conda activate cool_maps
+
+.. code-block:: console   
+
+    conda install --file requirements.txt
 
 
-Running tests
--------------
+Run tests:
+----------
 After setting up your environment, you can run all of the tests, provided you install 'pytest':
 
 .. code-block:: console
 
     $ pytest
-
-
-.. _Github repo: https://github.com/rucool/cool_maps
-.. _tarball: https://github.com/rucool/cool_maps/tarball/master
 
 Credits
 -------
@@ -106,3 +98,5 @@ This package was created with Cookiecutter_ and the `conda/cookiecutter-conda-py
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`conda/cookiecutter-conda-python`: https://github.com/conda/cookiecutter-conda-python
+.. _Github repo: https://github.com/rucool/cool_maps
+.. _tarball: https://github.com/rucool/cool_maps/tarball/master

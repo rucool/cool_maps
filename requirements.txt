@@ -3,4 +3,5 @@ matplotlib
 cmocean
 oceans
 numpy
-pytest
+jupyterlab
+nb_conda_kernels
