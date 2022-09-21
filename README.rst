@@ -1,6 +1,6 @@
-=========
-cool_maps
-=========
+======
+Readme
+======
 
 
 .. .. image:: https://img.shields.io/pypi/v/cool_maps.svg
@@ -19,14 +19,6 @@ cool_maps is a package containing functions that utilizearound the cartopy for p
 These functions are written to easily generate maps using pre-defined settings that our lab, Rutgers Center for Ocean Observing Leadership, prefers to use.
 
 
-* Free software: MIT license
-
-
-Features
---------
-
-* TODO
-
 ============
 Installation
 ============
@@ -43,7 +35,7 @@ Install with conda:
 
 .. code-block:: console
 
-    conda install -c conda-forge ioos_qc
+    $ conda install -c conda-forge cool_maps
 
 
 From sources
@@ -63,40 +55,27 @@ Or download the `tarball`_:
 
     $ curl -OJL https://github.com/rucool/cool_maps/tarball/master
 
-
-=======================
-Development and Testing
-=======================
-
-Create a conda environment:
----------------------------
-.. code-block:: console
-
-    conda create -n cool_maps python=3.9
-
-.. code-block:: console
-    
-    conda activate cool_maps
-
-.. code-block:: console   
-
-    conda install --file requirements.txt
-
-
-Run tests:
-----------
-After setting up your environment, you can run all of the tests, provided you install 'pytest':
+Change your directory to the source code of cool_maps 
 
 .. code-block:: console
 
-    $ pytest
+    $ cd ~/cool_maps
 
-Credits
--------
 
-This package was created with Cookiecutter_ and the `conda/cookiecutter-conda-python`_ project template.
+Once you are in the correct directory, there are two ways to install from source. 
 
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`conda/cookiecutter-conda-python`: https://github.com/conda/cookiecutter-conda-python
+Method 1:
+
+.. code-block:: console
+
+    $ python setup.py install
+
+Method 2:
+
+.. code-block:: console
+
+    $ pip install .
+
+
 .. _Github repo: https://github.com/rucool/cool_maps
 .. _tarball: https://github.com/rucool/cool_maps/tarball/master
