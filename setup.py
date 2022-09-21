@@ -10,7 +10,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "cartopy<0.20",
+    "cartopy",
     "matplotlib",
     "cmocean",
     "oceans",
