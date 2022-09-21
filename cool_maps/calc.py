@@ -48,39 +48,39 @@ def calculate_ticks(extent, direction):
     elif r <= 7.0:
         # <7 degrees: 1d major ticks, 15' minor ticks
         minor_int = 0.25
-        major_int = np.float(1)
+        major_int = float(1)
     elif r <= 15:
         # <15 degrees: 2d major ticks, 30' minor ticks
         minor_int = 0.5
-        major_int = np.float(2)
+        major_int = float(2)
     elif r <= 30:
         # <=30 degrees: 3d major ticks, 1d minor ticks
-        minor_int = np.float(1)
-        major_int = np.float(3)
+        minor_int = float(1)
+        major_int = float(3)
     elif r <=50:
         # <=50 degrees: 5d major ticks, 1d minor ticks
-        minor_int = np.float(1)
-        major_int = np.float(5)
+        minor_int = float(1)
+        major_int = float(5)
     elif r <=80:
         # <=80 degrees: 10d major ticks, 5d minor ticks
-        minor_int = np.float(5)
-        major_int = np.float(10)
+        minor_int = float(5)
+        major_int = float(10)
     elif r <=120:
         # <=120 degrees: 15d major ticks, 5d minor ticks
-        minor_int = np.float(5)
-        major_int = np.float(15)
+        minor_int = float(5)
+        major_int = float(15)
     elif r <=160:
         # <=160 degrees: 20d major ticks, 5d minor ticks
-        minor_int = np.float(5)
-        major_int = np.float(20)
+        minor_int = float(5)
+        major_int = float(20)
     elif r <=250:
         # <=250 degrees: 30d major ticks, 10d minor ticks
-        minor_int = np.float(10)
-        major_int = np.float(30)
+        minor_int = float(10)
+        major_int = float(30)
     else:
         # >250 degrees: 45d major ticks, 15d minor ticks
-        minor_int = np.float(15)
-        major_int = np.float(45)
+        minor_int = float(15)
+        major_int = float(45)
 
     minor_ticks = np.arange(
         np.ceil(l0 / minor_int) * minor_int, 
