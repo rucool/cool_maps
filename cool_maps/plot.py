@@ -7,7 +7,6 @@ from pathlib import Path
 # Imports from required packages
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-import matplotlib.colors
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
@@ -38,15 +37,13 @@ def add_bathymetry(ax, lon, lat, elevation,
 
     Args:
         ax (matplotlib.axes): matplotlib axes
-        lon (array-like): bathymetry longitudes
-        lat (array-like): bathymetry latitudes
-        elevation (array-like): bathymetry elevation data
-        levels (tuple, optional): 
-            Determines the number and positions of the contour lines / regions. Defaults to (-1000).
+        lon (array-like): Longitudes of bathymetry
+        lat (array-like): Latitudes of bathymetry
+        elevation (array-like): Elevation of bathymetry
+        levels (tuple, optional): Determines the number and positions of the contour lines. Defaults to (-1000).
         zorder (int, optional): Drawing order for this function on the axes. Defaults to 5.
-        transform (_type_, optional): Tells Cartopy what coordinate system your data are defined in. Defaults to crs.PlateCarree().
-        transform_first (bool, optional): 
-            Indicate that Cartopy points should be transformed before calling the contouring algorithm, which can have a significant impact on speed (it is much faster to transform points than it is to transform patches). Defaults to False.
+        transform (_type_, optional): Coordinate system data is defined in. Defaults to crs.PlateCarree.
+        transform_first (bool, optional): Indicate that Cartopy points should be transformed before calling the contouring algorithm, which can have a significant impact on speed (it is much faster to transform points than it is to transform patches). Defaults to False.
     """
     lons, lats = np.meshgrid(lon, lat)
     h = ax.contour(lons, lats, elevation, levels, 
