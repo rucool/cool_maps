@@ -52,6 +52,7 @@ def add_bathymetry(ax, lon, lat, elevation,
                     transform_first=transform_first, # May speed plotting up
                     zorder=zorder)
     ax.clabel(h, levels, inline=True, fontsize=6, fmt=fmt)
+    return h
 
 
 def add_currents(ax, ds, 
@@ -224,6 +225,10 @@ def create(extent,
            isobaths=(-1000, -100),
            xlabel=None,
            ylabel=None,
+           tick_label_left=True,
+           tick_label_right=False,
+           tick_label_bottom=True,
+           tick_label_top=False,
            labelsize=14,
            ax=None,
            figsize=(11,8),
@@ -244,6 +249,10 @@ def create(extent,
         isobaths (tuple or list, optional): Elevation at which to create bathymetric contour lines. Defaults to (-1000, -100)
         xlabel (str, optional): X Axis Label. Defaults to None
         ylabel (str, optional): Y Axis Label. Defaults to None
+        tick_label_left (bool, optional): Add tick labels to left side of plot. Defaults to True.
+        tick_label_right (bool, optional): Add tick labels to right side of plot. Defaults to False.
+        tick_label_bottom (bool, optional): Add tick labels to bottom side of plot. Defaults to True.
+        tick_label_top (bool, optional): Add tick labels to top side of plot. Defaults to False.
         labelsize (int, optional): Font size for axis labels. Defaults to 14.
         ax (matplotlib.Axis, optional): Pass matplotlib axis to function. Not necessary if plotting to subplot. Defaults to None.
         figsize (tuple, optional): (width, height) of the figure. Defaults to (11,8).
@@ -290,16 +299,17 @@ def create(extent,
 
     # Add ticks using custom functions
     if ticks:
-        if not gridlines:
-            add_ticks(ax, extent)
-            gl_added = False
-        else:
-            add_ticks(ax, extent, gridlines=True)
-            gl_added = True
-            
-    # Add gridlines using built-in cartopy gridliner
-    if gridlines:
-        if not gl_added:
+        tick_dict = {}
+        tick_dict['label_left'] = tick_label_left
+        tick_dict['label_right'] = tick_label_right
+        tick_dict['label_bottom'] = tick_label_bottom
+        tick_dict['label_top'] = tick_label_top
+        tick_dict['gridlines'] = gridlines
+        add_ticks(ax, extent, **tick_dict)
+    else:
+        # Add gridlines using built-in cartopy gridliner, provided we didn't
+        # add any when we created the ticks
+        if gridlines:
             ax.gridlines()
 
     # Add axis labels
