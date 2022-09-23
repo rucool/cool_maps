@@ -156,7 +156,14 @@ def add_features(ax,
     ax.add_feature(cfeature.BORDERS, linestyle='--', zorder=zorder+10.3)
 
 
-def add_ticks(ax, extent, proj=proj['data'], fontsize=13, gridlines=False):
+def add_ticks(ax, extent,
+              proj=proj['data'], 
+              fontsize=13, 
+              label_left=True,
+              label_right=False,
+              label_bottom=True, 
+              label_top=False, 
+              gridlines=False):
     """
     Calculate and add nicely formatted ticks to your map
 
@@ -183,18 +190,18 @@ def add_ticks(ax, extent, proj=proj['data'], fontsize=13, gridlines=False):
     ax.tick_params(which='major',
                    direction='out',
                    bottom=True, top=True,
-                   labelbottom=True, labeltop=False,
+                   labelbottom=label_bottom, labeltop=label_top,
                    left=True, right=True,
-                   labelleft=True, labelright=False,
+                   labelleft=label_left, labelright=label_right,
                    length=5, width=2)
 
     # Adjust minor ticks
     ax.tick_params(which='minor',
                    direction='out',
                    bottom=True, top=True,
-                   labelbottom=True, labeltop=False,
+                #    labelbottom=True, labeltop=False,
                    left=True, right=True,
-                   labelleft=True, labelright=False,
+                #    labelleft=True, labelright=False,
                    width=1)
     
     # Add gridlines 
