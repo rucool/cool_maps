@@ -270,6 +270,8 @@ def create(extent,
             figsize=figsize, #12,9
             subplot_kw=dict(projection=proj)
         )
+    else:
+        fig_init = False
 
     # Make the map pretty
     if features:
