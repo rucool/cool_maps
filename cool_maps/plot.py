@@ -219,6 +219,7 @@ def create(extent,
            edgecolor="black", 
            landcolor="tan",
            oceancolor=cfeature.COLORS['water'],
+           coast="full",
            ticks=True,
            gridlines=False,
            bathymetry=False,
@@ -243,6 +244,7 @@ def create(extent,
         edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
         landcolor (str, optional): Color of land. Defaults to "tan".
         oceancolor (str, optional): Color of the ocean. Defaults to cartopy default water color
+        coast (str, optional): Coastline resolution, options "full" (default), "high", "mid", "low"
         ticks (bool, optional): Calculate appropriately spaced ticks. Defaults to True.
         gridlines (bool, optional): Add gridlines. Defaults to False
         bathymetry (bool or tuple, optional): Download and plot bathymetry on map. Defaults to False.
@@ -286,6 +288,7 @@ def create(extent,
             "landcolor": landcolor,
             "oceancolor": oceancolor,
             "zorder": zorder,
+            "coast": coast,
             }
         
         add_features(ax, **fargs)
