@@ -35,6 +35,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],   
     description="Helper functions around cartopy for plotting data on maps. These functions are written to easily generate nice-looking maps.",
     install_requires=requirements,
