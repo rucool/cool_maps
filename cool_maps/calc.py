@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def calculate_ticks(extent, direction):
+def calculate_ticks(extent, direction, decimal_degrees=False):
     """
     Define major and minor tick locations and major tick labels
 
     Args:
         extent (tuple or list): extent (x0, x1, y0, y1) of the map in the given coordinate system.
         dirs (str): Tell function which bounds to calculate. Must be 'longitude' or 'latitude'.
+        decimal_degrees (bool, optional): label ticks in decimal degrees (True) or degree-minute-second (False, default)
 
     Returns:
         list: minor ticks
@@ -94,38 +95,65 @@ def calculate_ticks(extent, direction):
         major_int)
     major_ticks = major_ticks[major_ticks <= l1]
 
-    if major_int < 1:
-        d, m, _ = dd2dms(np.array(major_ticks))
-        if direction == 'longitude':
-            n = 'W' * sum(d < 0)
-            p = 'E' * sum(d >= 0)
-            dir = n + p
-            major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" + dir[i] for i in
-                                 range(len(d))]
-        elif direction == 'latitude':
-            n = 'S' * sum(d < 0)
-            p = 'N' * sum(d >= 0)
-            dir = n + p
-            major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" + dir[i] for i in
-                                 range(len(d))]
-        else:
-            major_tick_labels = [str(int(d[i])) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" for i in range(len(d))]
+    if decimal_degrees:
+        major_tick_labels = major_ticks
     else:
-        d = major_ticks
-        if direction == 'longitude':
-            n = 'W' * sum(d < 0)
-            p = 'E' * sum(d >= 0)
-            dir = n + p
-            major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + dir[i] for i in range(len(d))]
-        elif direction == 'latitude':
-            n = 'S' * sum(d < 0)
-            p = 'N' * sum(d >= 0)
-            dir = n + p
-            major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + dir[i] for i in range(len(d))]
+        if major_int < 1:
+            d, m, _ = dd2dms(np.array(major_ticks))
+            if direction == 'longitude':
+                n = 'W' * sum(d < 0)
+                p = 'E' * sum(d >= 0)
+                dir = n + p
+                major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" + dir[i] for i in
+                                    range(len(d))]
+            elif direction == 'latitude':
+                n = 'S' * sum(d < 0)
+                p = 'N' * sum(d >= 0)
+                dir = n + p
+                major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" + dir[i] for i in
+                                    range(len(d))]
+            else:
+                major_tick_labels = [str(int(d[i])) + u"\N{DEGREE SIGN}" + str(int(m[i])) + "'" for i in range(len(d))]
         else:
-            major_tick_labels = [str(int(d[i])) + u"\N{DEGREE SIGN}" for i in range(len(d))]
+            d = major_ticks
+            if direction == 'longitude':
+                n = 'W' * sum(d < 0)
+                p = 'E' * sum(d >= 0)
+                dir = n + p
+                major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + dir[i] for i in range(len(d))]
+            elif direction == 'latitude':
+                n = 'S' * sum(d < 0)
+                p = 'N' * sum(d >= 0)
+                dir = n + p
+                major_tick_labels = [str(np.abs(int(d[i]))) + u"\N{DEGREE SIGN}" + dir[i] for i in range(len(d))]
+            else:
+                major_tick_labels = [str(int(d[i])) + u"\N{DEGREE SIGN}" for i in range(len(d))]
 
     return minor_ticks, major_ticks, major_tick_labels
+
+
+def calculate_colorbar_ticks(vmin, vmax):
+    """
+    Calculate tick locations for colorbar
+
+    Args:
+        vmin (float): minimum value of colorbar (should match vmin of object colorbar is mapped to)
+        vmax (float): maximum value of colorbar (should match vmax of object colorbar is mapped to)
+
+    Returns:
+        list: tick locations
+    """
+
+    scale = 1
+    if vmax-vmin<4:
+        scale = 10**(-np.floor(np.log10(vmax-vmin))+1)
+
+    cbticks = np.arange(np.ceil(vmin*scale+.01), np.floor(vmax*scale+.99))
+    if len(cbticks)>5:
+        cbticks=cbticks[::int(np.floor(len(cbticks)/5))]
+    cbticks = cbticks/scale
+    
+    return cbticks
 
 
 def categorical_cmap(nc, nsc, cmap="tab10", continuous=False):

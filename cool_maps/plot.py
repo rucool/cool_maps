@@ -164,7 +164,8 @@ def add_ticks(ax, extent,
               label_right=False,
               label_bottom=True, 
               label_top=False, 
-              gridlines=False):
+              gridlines=False,
+              decimal_degrees=False):
     """
     Calculate and add nicely formatted ticks to your map
 
@@ -174,15 +175,16 @@ def add_ticks(ax, extent,
         proj (cartopy.crs class, optional): Define a projected coordinate system for ticks. Defaults to ccrs.PlateCarree().
         fontsize (int, optional): Font size of tick labels. Defaults to 13.
         gridlines (bool, optional): Add gridlines to map. Defaults to False.
+        decimal_degrees (bool, optional): Label axes with decimal degrees instead of degree-minute-second. Defaults to False.
     """
     # Calculate Longitude ticks
-    tick0x, tick1, ticklab = calculate_ticks(extent, 'longitude')
+    tick0x, tick1, ticklab = calculate_ticks(extent, 'longitude', decimal_degrees=decimal_degrees)
     ax.set_xticks(tick0x, minor=True, crs=proj)
     ax.set_xticks(tick1, crs=proj)
     ax.set_xticklabels(ticklab, fontsize=fontsize)
 
     # Calculate Latitude Ticks
-    tick0y, tick1, ticklab = calculate_ticks(extent, 'latitude')
+    tick0y, tick1, ticklab = calculate_ticks(extent, 'latitude', decimal_degrees=decimal_degrees)
     ax.set_yticks(tick0y, minor=True, crs=proj)
     ax.set_yticks(tick1, crs=proj)
     ax.set_yticklabels(ticklab, fontsize=fontsize)
@@ -230,6 +232,7 @@ def create(extent,
            tick_label_right=False,
            tick_label_bottom=True,
            tick_label_top=False,
+           decimal_degrees=False,
            labelsize=14,
            ax=None,
            figsize=(11,8),
@@ -255,6 +258,7 @@ def create(extent,
         tick_label_right (bool, optional): Add tick labels to right side of plot. Defaults to False.
         tick_label_bottom (bool, optional): Add tick labels to bottom side of plot. Defaults to True.
         tick_label_top (bool, optional): Add tick labels to top side of plot. Defaults to False.
+        decimal_degrees (bool, optional): Label axes with decimal degrees instead of degree-minute-second. Defaults to False.
         labelsize (int, optional): Font size for axis labels. Defaults to 14.
         ax (matplotlib.Axis, optional): Pass matplotlib axis to function. Not necessary if plotting to subplot. Defaults to None.
         figsize (tuple, optional): (width, height) of the figure. Defaults to (11,8).
@@ -310,6 +314,7 @@ def create(extent,
         tick_dict['label_bottom'] = tick_label_bottom
         tick_dict['label_top'] = tick_label_top
         tick_dict['gridlines'] = gridlines
+        tick_dict['decimal_degrees'] = decimal_degrees
         add_ticks(ax, extent, **tick_dict)
     else:
         # Add gridlines using built-in cartopy gridliner, provided we didn't
