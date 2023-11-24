@@ -27,6 +27,10 @@ Function to define categorical colormaps based on defined number of categories
 
     cm_categorical: categorical colormaps
 
+Function to modify cyclical colormaps
+
+    cm_annualcycle: modified hsv with blues at ends
+
 """
 
 def cm_oxy_mod(vmin=2, vmax=9, breaks=[3,7.5], red=True, gray=True, yellow=True):
@@ -314,7 +318,7 @@ def cm_categorical(N, listvals=True):
         ValueError: Too many categories for colormap
 
     Returns:
-        object: matplotlib colormap
+        object: matplotlib colormap or list of colors
     """
     if N > 100:
         raise ValueError("Too many categories for colormap.")
@@ -344,6 +348,42 @@ def cm_categorical(N, listvals=True):
     newmap = newmap[:N]
 
     if not listvals:
-        newmap = matplotlib.colors.ListedColormap(newmap)
+        newmap = mcolors.ListedColormap(newmap)
+    
+    return newmap
+
+
+def cm_annualcycle(step='monthly', listvals=False):
+    """
+    Define annual cycle colormap.
+    HSV modified with blues at beginning and end of colormap (winter), reds in middle (summer)
+    
+    Args:
+        step (str): 'monthly' (default, 12 steps in colormap) or 'daily' (365 steps in colormap)
+        listvals (bool): return array of rgb or hex values instead of colormap object
+        
+    Raises:
+        ValueError: value for 'step' not a valid option
+
+    Returns:
+        object: matplotlib colormap or list of colors
+    """
+    if step not in ['monthly', 'daily']:
+        raise ValueError("Too many categories for colormap.")
+    
+    if step == 'monthly':
+        nints=12
+        cm_jan_apr = plt.cm.hsv(np.linspace(.7,.2,4))
+        cm_may_aug = plt.cm.hsv(np.linspace(.19,0,4))
+        cm_sep_dec = plt.cm.hsv(np.linspace(.9,.71,4))
+    elif step=='daily':
+        nints=365
+        cm_jan_apr = plt.cm.hsv(np.linspace(.7,.2,120))
+        cm_may_aug = plt.cm.hsv(np.linspace(.19,0,123))
+        cm_sep_dec = plt.cm.hsv(np.linspace(.9,.71,122))
+    newmap = np.vstack((cm_jan_apr, cm_may_aug, cm_sep_dec))
+
+    if not listvals:
+        newmap = mcolors.ListedColormap(newmap)
     
     return newmap
