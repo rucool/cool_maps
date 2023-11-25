@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 from oceans.ocfis import spdir2uv, uv2spdir
+import cmocean as cmo
 
 # Imports from cool_maps
-from cool_maps.calc import calculate_ticks, dd2dms, fmt
+from cool_maps.calc import calculate_ticks, dd2dms, fmt, calculate_colorbar_ticks
 from cool_maps.download import get_bathymetry
 
 
@@ -29,6 +30,9 @@ proj = dict(
 
 def add_bathymetry(ax, lon, lat, elevation,
                    levels=(-1000),
+                   method='contour',
+                   legend_scale='both',
+                   fontsize=13,
                    zorder=5,
                    transform=proj['data'], 
                    transform_first=False):
@@ -41,17 +45,90 @@ def add_bathymetry(ax, lon, lat, elevation,
         lat (array-like): Latitudes of bathymetry
         elevation (array-like): Elevation of bathymetry
         levels (tuple, optional): Determines the number and positions of the contour lines. Defaults to (-1000).
+        method (string): Method for plotting bathymetry. Defaults to contour. Options:
+            - contour: standard black contour at :levels:
+            - shadedcontour: contours in shades of gray varying with depth
+            - blues: pcolormesh using Blues colormap; excludes land and ignores :levels:
+            - blues_log: pcolormesh of log-transformed bathymetry using Blues colormap; excludes land and ignores :levels:
+            - topo: pcolormesh using cmocean topo colormap; excludes land and ignores :levels:
+            - topo_log: pcolormesh of log-transformed bathymetry using cmocean topo colormap; excludes land and ignores :levels:
+            - topofull: pcolormesh using cmocean topo colormap; includes land and ignores :levels:
+            - topofull_log: pcolormesh of log-transformed altitude/bathymetry using cmocean topo colormap; includes land and ignores :levels:
+        legend_scale (string, optional): Measurement system to use for legend. Currently only supported for shadedcontour; no legend for other options. ASSUMES LEVELS PROVIDED ARE IN METERS.
+            - metric: meters
+            - imperial: fathoms
+            - both: meters and fathoms
+            - off: no legend
+        fontsize (int, optional): Font size for legend
         zorder (int, optional): Drawing order for this function on the axes. Defaults to 5.
         transform (_type_, optional): Coordinate system data is defined in. Defaults to crs.PlateCarree.
         transform_first (bool, optional): Indicate that Cartopy points should be transformed before calling the contouring algorithm, which can have a significant impact on speed (it is much faster to transform points than it is to transform patches). Defaults to False.
+
+    Raises:
+        NameError: provided method is not recognized
+
+    Returns:
+        object: plotted bathymetry handle
     """
+    recognized_methods=['contour', 'shadedcontour', 'blues', 'blues_log', 'topo', 'topo_log', 'topofull', 'topofull_log']
+    recognized_legends=['metric', 'imperial', 'both', 'off']
+    if method not in recognized_methods:
+        raise NameError(f'{method} is not a currently supported option for bathymetry plotting. Please choose from {", ".join(recognized_methods)}')
+    if legend_scale not in recognized_legends:
+        raise NameError(f'{legend_scale} is not a currently supported option for the legend. Please choose from {", ".join(recognized_legends)}')
+
     lons, lats = np.meshgrid(lon, lat)
-    h = ax.contour(lons, lats, elevation, levels, 
-                    linewidths=.75, alpha=.5, colors='k', 
-                    transform=transform, 
-                    transform_first=transform_first, # May speed plotting up
-                    zorder=zorder)
-    ax.clabel(h, levels, inline=True, fontsize=6, fmt=fmt)
+    elevation=elevation.copy()
+
+    if method=='contour':
+        h = ax.contour(lons, lats, elevation, levels, 
+                        linewidths=.75, alpha=.5, colors='k', 
+                        transform=transform, 
+                        transform_first=transform_first, # May speed plotting up
+                        zorder=zorder)
+        ax.clabel(h, levels, inline=True, fontsize=6, fmt=fmt)
+    
+    if method=='shadedcontour':
+        ci=1.0/float(len(levels))
+        bathyLabels = {-x: '{}m'.format(int(x)) for x in np.sort(np.abs(levels))[::-1]}
+        if legend_scale == 'imperial':
+            bathyLabels = {-x: '{}fth'.format(int(x * 0.546807)) for x in np.sort(np.abs(levels))[::-1]}
+        if legend_scale == 'both':
+            bathyLabels = {-x: '{}fth, {}m'.format(int(x * 0.546807), int(x)) for x in np.sort(np.abs(levels))[::-1]}
+        rgb_col=[(ci*cs,ci*cs,ci*cs) for cs in range(len(bathyLabels))]
+        h=[]
+        for cs in range(len(bathyLabels)):
+            h = np.append(h, ax.contour(lons,lats,elevation,
+                       levels=[list(bathyLabels.keys())[cs]],
+                       linestyles='solid',linewidths=.75,
+                       colors=[(ci*cs,ci*cs,ci*cs)],
+                       zorder=zorder,transform=transform))
+        if legend_scale != 'off':
+            cs_cols=[plt.Line2D((0,1),(0,1),color=pc) for pc in rgb_col]
+            ax.legend(cs_cols[::-1],list(bathyLabels.values())[::-1],
+                      loc='upper center',
+                      bbox_to_anchor=(0.5,-0.05),
+                      fancybox=True,ncol=len(levels),
+                      fontsize=fontsize)
+    
+    if method in ['blues_log', 'topo_log', 'topofull_log']:
+        elevation[np.abs(elevation)<1] = 0
+        elevation[elevation>0] = np.log10(elevation[elevation>0])
+        elevation[elevation<0] = -np.log10(np.abs(elevation[elevation<0]))
+    if method in ['blues', 'topo', 'blues_log', 'topo_log']:
+        elevation[elevation>0] = np.nan
+    if method in ['blues', 'blues_log']:
+        cmap = plt.cm.Blues_r
+        vmin = np.nanquantile(elevation, 0.05)
+        vmax = 0
+    if method in ['topo', 'topo_log', 'topofull', 'topofull_log']:
+        cmap = cmo.cm.topo
+        vmin = -np.nanquantile(np.abs(elevation), 0.95)
+        vmax = np.nanquantile(np.abs(elevation), 0.95)
+    if method in ['blues', 'blues_log', 'topo', 'topo_log', 'topofull', 'topofull_log']:
+        h = plt.pcolormesh(lons, lats, elevation, cmap=cmap, vmin=vmin, vmax=vmax, 
+                           transform=transform, zorder=zorder)
+
     return h
 
 
@@ -157,6 +234,50 @@ def add_features(ax,
     ax.add_feature(cfeature.BORDERS, linestyle='--', zorder=zorder+10.3)
 
 
+def add_double_temp_colorbar(ax, h, vmin, vmax,
+                             fontsize=13):
+    """
+    Add colorbar with Celsius and Fahrenheit units
+
+    Args:
+        ax (matplotlib.axes): matplotlib axes
+        h (matplotlib object handle to match colorbar to): 
+        vmin (float): minimum value of colorbar (should match vmin of object colorbar is mapped to)
+        vmax (float): maximum value of colorbar (should match vmax of object colorbar is mapped to)
+        fontsize (int, optional): font size for tick labels
+
+    Returns:
+        object: Colorbar
+        axes: Twin axes for colorbar
+    """
+        
+    cbticks = calculate_colorbar_ticks(vmin, vmax)
+    cbticksF = calculate_colorbar_ticks(vmin*1.8+32, vmax*1.8+32)
+    cbCLabels=[str(int(cbticks[i]))+u"\N{DEGREE SIGN}"+"C" for i in range(len(cbticks))]
+    cbFLabels = [str(int(cbticksF[i])) + u"\N{DEGREE SIGN}" + "F" for i in range(len(cbticksF))]
+
+    cb = plt.colorbar(h) #, ticks=cbticks)
+    cb.ax.set_yticks(cbticks, labels=cbCLabels, fontsize=fontsize)
+    pcb=cb.ax.get_position()
+    pax=ax.get_position()
+
+    # set up axis overlapping colorbar to have degree F and degree C labels
+    cb.ax.set_aspect('auto')
+    pcb.x0 = pax.x1+.05
+    pcb.x1 = pax.x1+.08
+    pcb.y0 = pax.y0
+    pcb.y1 = pax.y1
+    cb2 = cb.ax.twinx()
+    cb.ax.set_position(pcb)
+    ax.set_position(pax)
+    cb2.set_position(pcb)
+    cb2.set_ylim([vmin, vmax]*1.8+32)
+    cb2.yaxis.set_label_position('left')
+    cb2.set_yticks(cbticksF, labels=cbFLabels, fontsize=fontsize)
+
+    return cb, cb2
+
+
 def add_ticks(ax, extent,
               proj=proj['data'], 
               fontsize=13, 
@@ -226,6 +347,8 @@ def create(extent,
            gridlines=False,
            bathymetry=False,
            isobaths=(-1000, -100),
+           bathymetry_method='contour',
+           bathymetry_file=None,
            xlabel=None,
            ylabel=None,
            tick_label_left=True,
@@ -252,6 +375,8 @@ def create(extent,
         gridlines (bool, optional): Add gridlines. Defaults to False
         bathymetry (bool or tuple, optional): Download and plot bathymetry on map. Defaults to False.
         isobaths (tuple or list, optional): Elevation at which to create bathymetric contour lines. Defaults to (-1000, -100)
+        bathymetry_method (str, optional): Method for plotting bathymetry (see cool_maps.plot.plot_bathymetry for options). Defaults to contour.
+        bathymetry_file (str filename or None): Name of CF compliant GMRT nc file, or None (default) to use ERDDAP.
         xlabel (str, optional): X Axis Label. Defaults to None
         ylabel (str, optional): Y Axis Label. Defaults to None
         tick_label_left (bool, optional): Add tick labels to left side of plot. Defaults to True.
@@ -299,12 +424,19 @@ def create(extent,
 
     # Add bathymetry
     if bathymetry:
+        if 'contour' in bathymetry_method:
+            bathy_zorder_add=99
+        elif 'topofull' in bathymetry_method:
+            bathy_zorder_add=20
+        else:
+            bathy_zorder_add=5
         bargs = {
             "levels": isobaths,
-            "zorder": zorder+99,
+            "zorder": zorder+bathy_zorder_add,
+            "method": bathymetry_method,
         }
-        bathy = get_bathymetry(extent)
-        add_bathymetry(ax, bathy['longitude'], bathy['latitude'], bathy['z'], **bargs)
+        bathy = get_bathymetry(extent, file=bathymetry_file)
+        add_bathymetry(ax, bathy['longitude'].data, bathy['latitude'].data, bathy['z'].data, **bargs)
 
     # Add ticks using custom functions
     if ticks:

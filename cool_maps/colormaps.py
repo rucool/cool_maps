@@ -222,7 +222,7 @@ def cm_rogg(vmin=2, vmax=9, breaks=[3,5,7.5], red=True, orange=True, gray=True, 
         b+=1
     if green:
         nints = int(np.floor((all_nums[b]-all_nums[b-1])/ni))
-        cm0 = plt.cm.Oranges(np.linspace(.8,.4,nints))
+        cm0 = cmocean.cm.algae(np.linspace(.8,.3,nints))
         if b==1:
             cmfull = cm0
         else:
@@ -342,7 +342,7 @@ def cm_categorical(N, listvals=True):
                 newmap = rgb
             else:
                 newmap = np.vstack((newmap,rgb))
-            if i==np.mod(N,nc):
+            if i==np.mod(N,nc) and i>nc*(nsc-1) and np.mod(N,nc)!=0:
                 nsc-=1
 
     newmap = newmap[:N]
