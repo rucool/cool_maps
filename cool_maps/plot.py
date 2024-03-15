@@ -235,15 +235,17 @@ def add_features(ax,
 
 
 def add_double_temp_colorbar(ax, h, vmin, vmax,
-                             fontsize=13):
+                             anomaly=False, fontsize=13):
     """
     Add colorbar with Celsius and Fahrenheit units
+    https://pythonmatplotlibtips.blogspot.com/2019/07/draw-two-axis-to-one-colorbar.html
 
     Args:
         ax (matplotlib.axes): matplotlib axes
         h (matplotlib object handle to match colorbar to): 
         vmin (float): minimum value of colorbar (should match vmin of object colorbar is mapped to)
         vmax (float): maximum value of colorbar (should match vmax of object colorbar is mapped to)
+        anomaly (bool): whether product is an anomaly
         fontsize (int, optional): font size for tick labels
 
     Returns:
@@ -251,8 +253,11 @@ def add_double_temp_colorbar(ax, h, vmin, vmax,
         axes: Twin axes for colorbar
     """
         
-    cbticks = calculate_colorbar_ticks(vmin, vmax)
-    cbticksF = calculate_colorbar_ticks(vmin*1.8+32, vmax*1.8+32)
+    cbticks = calculate_colorbar_ticks(vmin, vmax, c0=anomaly)
+    if anomaly:
+        cbticksF = calculate_colorbar_ticks(vmin*1.8, vmax*1.8, c0=anomaly)
+    else:
+        cbticksF = calculate_colorbar_ticks(vmin*1.8+32, vmax*1.8+32, c0=anomaly)
     cbCLabels=[str(int(cbticks[i]))+u"\N{DEGREE SIGN}"+"C" for i in range(len(cbticks))]
     cbFLabels = [str(int(cbticksF[i])) + u"\N{DEGREE SIGN}" + "F" for i in range(len(cbticksF))]
 
@@ -263,17 +268,23 @@ def add_double_temp_colorbar(ax, h, vmin, vmax,
 
     # set up axis overlapping colorbar to have degree F and degree C labels
     cb.ax.set_aspect('auto')
-    pcb.x0 = pax.x1+.05
-    pcb.x1 = pax.x1+.08
+    pcb.x0 = pax.x1+.055
+    pcb.x1 = pax.x1+.085
     pcb.y0 = pax.y0
     pcb.y1 = pax.y1
     cb2 = cb.ax.twinx()
-    cb.ax.set_position(pcb)
     ax.set_position(pax)
-    cb2.set_position(pcb)
-    cb2.set_ylim([vmin, vmax]*1.8+32)
+    cb2.set_ylim(np.array([vmin, vmax])*1.8+(32*(not anomaly)))
     cb2.yaxis.set_label_position('left')
+    cb2.yaxis.set_ticks_position('left')
+    cb.ax.yaxis.set_label_position('right')
+    cb.ax.yaxis.set_ticks_position('right')
     cb2.set_yticks(cbticksF, labels=cbFLabels, fontsize=fontsize)
+    cb.ax.set_position(pcb)
+    cb2.set_position(pcb)
+    cb2.spines['right'].set_visible(False)
+    cb2.spines['top'].set_visible(False)
+    cb2.spines['bottom'].set_visible(False)
 
     return cb, cb2
 

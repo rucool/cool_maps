@@ -132,18 +132,37 @@ def calculate_ticks(extent, direction, decimal_degrees=False):
     return minor_ticks, major_ticks, major_tick_labels
 
 
-def calculate_colorbar_ticks(vmin, vmax):
+def calculate_colorbar_ticks(vmin, vmax, c0=False):
     """
     Calculate tick locations for colorbar
 
     Args:
         vmin (float): minimum value of colorbar (should match vmin of object colorbar is mapped to)
         vmax (float): maximum value of colorbar (should match vmax of object colorbar is mapped to)
+        c0 (bool): center values around 0 (for anomaly products)
 
     Returns:
         list: tick locations
     """
 
+    if c0:
+        vmax=np.max((np.abs(vmin), np.abs(vmax)))
+        vmin=0
+        scale = 1
+        if vmax-vmin<0:
+            scale = 10**(-np.floor(np.log10(vmax-vmin))+1)
+
+        cbticks = np.arange(vmin, np.floor(vmax*scale+.99))
+        if len(cbticks)>3:
+            cbticks=cbticks[::int(np.floor(len(cbticks)/3))]
+        cbticks = cbticks/scale
+        i=np.diff(cbticks)[0]
+        if cbticks[-1]+i<=vmax:
+            cbticks=np.append(cbticks, cbticks[-1]+i)
+        i=np.diff(cbticks)[0]
+        cbticks=np.append(np.arange(-np.max(cbticks),0,i),cbticks)
+        return cbticks
+    
     scale = 1
     if vmax-vmin<4:
         scale = 10**(-np.floor(np.log10(vmax-vmin))+1)
@@ -152,6 +171,11 @@ def calculate_colorbar_ticks(vmin, vmax):
     if len(cbticks)>5:
         cbticks=cbticks[::int(np.floor(len(cbticks)/5))]
     cbticks = cbticks/scale
+    i=np.diff(cbticks)[0]
+    if cbticks[0]-i>=vmin:
+        cbticks=np.append(cbticks[0]-i, cbticks)
+    if cbticks[-1]+i<=vmax:
+        cbticks=np.append(cbticks, cbticks[-1]+i)
     
     return cbticks
 
