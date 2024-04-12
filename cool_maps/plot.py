@@ -15,7 +15,7 @@ import cmocean as cmo
 
 # Imports from cool_maps
 from cool_maps.calc import calculate_ticks, dd2dms, fmt, calculate_colorbar_ticks
-from cool_maps.download import get_bathymetry
+from cool_maps.download import get_bathymetry, get_glider_bathymetry
 
 
 # Suppresing warnings for a "pretty output."
@@ -128,6 +128,32 @@ def add_bathymetry(ax, lon, lat, elevation,
     if method in ['blues', 'blues_log', 'topo', 'topo_log', 'topofull', 'topofull_log']:
         h = plt.pcolormesh(lons, lats, elevation, cmap=cmap, vmin=vmin, vmax=vmax, 
                            transform=transform, zorder=zorder)
+
+    return h
+
+
+def add_glider_bathymetry(ax, deployment,
+                          time_start=None,
+                          time_end=None,
+                          color='black'):
+    """
+    Download and plot bathymetry measured by glider during a given deployment
+
+    Args:
+        ax (matplotlib.axes): matplotlib axes
+        deployment (str): name of deployment to grab and plot bathymetry for
+        time_start (str, optional): Start time. Defaults to None/beginning of deployment
+        time_end (str, optional): End time. Defaults to None/end of deployment
+        color (str, optional): name of color to plot bathymetry
+    Returns:
+        object: Patch
+    """
+
+    glider_bathy = get_glider_bathymetry(deployment, time_start=time_start, time_end=time_end)
+    floor_depth = np.max(glider_bathy['water_depth'])*1.05
+    h = plt.fill(np.append(glider_bathy['time'], [max(glider_bathy['time']), min(glider_bathy['time'])]), 
+               np.append(glider_bathy['water_depth'], [floor_depth, floor_depth]), 
+               color=color)
 
     return h
 
