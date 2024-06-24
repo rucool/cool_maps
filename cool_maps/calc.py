@@ -1,6 +1,7 @@
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
+from warnings import warn
 
 
 def calculate_ticks(extent, direction, decimal_degrees=False):
@@ -204,6 +205,8 @@ def categorical_cmap(nc, nsc, cmap="tab10", continuous=False):
         object: matplotlib colormap
     """
 
+    warn('calc.categorical_cmap is deprecated. Use colormaps.cm_categorical moving forward.', DeprecationWarning, stacklevel=2)
+
     if nc > plt.get_cmap(cmap).N:
         raise ValueError("Too many categories for colormap.")
     if continuous:
@@ -263,3 +266,32 @@ def fmt(x):
     if s.endswith("0"):
         s = f"{x:.0f}"
     return rf"{s}"
+
+
+def haversine_dist(lon0, lat0, lon1, lat1, get_total=False):
+    """
+    Get distance between all points in array or grid and one single point, or corresponding points between two arrays or grids of the same size.
+
+    args:
+        - lon0: longitude of single point OR dimensions matching lon1
+        - lat0: latitude of single point OR dimensions matching lat1
+        - lon1: longitude(s) of array or grid
+        - lat1: latitude(s) of array or grid
+        - get_total (bool): whether to return the sum of all distances returned
+        
+    returns:
+        - array matching size of lon1 and lat1 containing distance to (lon0, lat0) in km, or sum of all distances returned if get_total=True
+    """
+    R = 6373.0
+    lon1=np.array(lon1)*np.pi/180
+    lat1=np.array(lat1)*np.pi/180
+    lon0=np.array(lon0)*np.pi/180
+    lat0=np.array(lat0)*np.pi/180
+    dlon=lon1-lon0
+    dlat=lat1-lat0
+    a=np.sin(dlat/2)**2+np.cos(lat0)*np.cos(lat1)*np.sin(dlon/2)**2
+    c=2*np.arctan2(np.sqrt(a),np.sqrt(1-a))
+    distance=R*c
+    if get_total:
+        distance = np.sum(distance)
+    return distance
