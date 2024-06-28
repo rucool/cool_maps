@@ -2,6 +2,6 @@ cartopy
 matplotlib
 cmocean
 oceans
-numpy
+numpy<2.0
 jupyterlab
 nb_conda_kernels
