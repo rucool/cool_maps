@@ -375,6 +375,7 @@ def add_ticks(ax, extent,
 
 def create(extent, 
            proj=proj['map'],
+           data_proj=proj['data'],
            features=True, 
            edgecolor="black", 
            landcolor="tan",
@@ -446,7 +447,7 @@ def create(extent,
         # Set extent before we 'add features.' This is necessary because 
         # add_features adds land, coastlines, rivers, lakes, etc. based off 
         # of the current extent of the window.
-        ax.set_extent(extent)
+        ax.set_extent(extent, crs=data_proj)
 
         # Create dictionary for feature arguments
         fargs = {
