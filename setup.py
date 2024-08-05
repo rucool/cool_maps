@@ -14,7 +14,8 @@ requirements = [
     "matplotlib",
     "cmocean",
     "oceans",
-    "numpy<2.0",
+    "numpy",
+    "xarray",
     "erddapy"
 ]
 
