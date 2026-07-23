@@ -152,6 +152,8 @@ git push origin main && git push origin 1.0.2   # 7. push tag
 | `twine check` errors on `license-file` | `packaging` library too old | `pip install --upgrade "packaging>=24.2"` |
 | Upload ends in `EOFError` / `termios.error` | Ran the upload in a non-interactive shell (e.g. Claude `!` box) | Run in a real Terminal, or use `~/.pypirc` |
 | `File already exists` from PyPI | That version number was already published | Pick a new version number; you cannot overwrite |
+| `twine check` errors on `long_description` syntax (e.g. "Unknown interpreted text role") | `README.rst` uses Sphinx-only roles like `:func:`/`:mod:` — PyPI's renderer is plain docutils, not Sphinx | Replace with plain RST, e.g. `` ``cplt.create()`` `` instead of `` :func:`cplt.create` `` |
+| `twine check` errors on "Inconsistent title style" | `setup.py` concatenates `README.rst` + `HISTORY.rst` into one `long_description`; if `HISTORY.rst`'s heading underline characters don't match the heading level established in `README.rst`, docutils rejects it | Make `HISTORY.rst` version headers use the same underline character as the matching heading level in `README.rst` (check with `python3 -m twine check dist/*` after any README heading changes) |
 
 ---
 
