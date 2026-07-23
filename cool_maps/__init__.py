@@ -9,6 +9,7 @@ from .plot import (
     add_currents,
     add_double_temp_colorbar,
     add_features,
+    add_legend,
     add_marker,
     add_ticks,
     export_fig,

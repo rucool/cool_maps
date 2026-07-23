@@ -133,6 +133,35 @@ def calculate_ticks(
     return minor_ticks, major_ticks, major_tick_labels
 
 
+def pad_extent(
+    extent: Union[Tuple[float, ...], List[float]],
+    padding: Union[float, Tuple[float, float], List[float]],
+) -> Tuple[float, float, float, float]:
+    """
+    Expand an extent outward by a padding amount so map ticks and data don't
+    land right on the edge of the map.
+
+    Args:
+        extent (tuple or list): extent (x0, x1, y0, y1) to pad.
+        padding (float or tuple/list of 2 floats): degrees to subtract from x0/y0
+            and add to x1/y1. A single number pads longitude and latitude equally;
+            a 2-item sequence is (lon_padding, lat_padding).
+
+    Returns:
+        tuple: padded extent (x0, x1, y0, y1)
+    """
+    x0, x1, y0, y1 = (float(v) for v in extent)
+
+    if isinstance(padding, (tuple, list, np.ndarray)):
+        if len(padding) != 2:
+            raise ValueError("padding sequence must have exactly 2 values: (lon_padding, lat_padding)")
+        lon_pad, lat_pad = float(padding[0]), float(padding[1])
+    else:
+        lon_pad = lat_pad = float(padding)
+
+    return (x0 - lon_pad, x1 + lon_pad, y0 - lat_pad, y1 + lat_pad)
+
+
 def calculate_colorbar_ticks(vmin: float, vmax: float, c0: bool = False) -> np.ndarray:
     """
     Calculate tick locations for colorbar

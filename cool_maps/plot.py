@@ -14,7 +14,7 @@ from oceans.ocfis import spdir2uv, uv2spdir
 import cmocean as cmo
 
 # Imports from cool_maps
-from cool_maps.calc import calculate_ticks, dd2dms, fmt, calculate_colorbar_ticks
+from cool_maps.calc import calculate_ticks, dd2dms, fmt, calculate_colorbar_ticks, pad_extent
 from cool_maps.download import get_bathymetry, get_glider_bathymetry
 
 # Optional mapping engines
@@ -905,14 +905,18 @@ def _banded_legend_labels(edges, legend_scale):
 
 def _draw_banded_legend(legend_ax, band_labels, colors, fontsize):
     handles = [mpatches.Patch(facecolor=color, edgecolor="black", linewidth=0.5) for color in colors]
+    # band_labels/colors are computed deepest-to-shallowest (matching contourf's levels/colors
+    # convention), but the legend should read shallowest-to-deepest.
     legend_ax.legend(
-        handles,
-        band_labels,
+        handles[::-1],
+        band_labels[::-1],
         loc="upper center",
         bbox_to_anchor=(0.5, -0.05),
         fancybox=True,
         ncol=len(colors),
         fontsize=fontsize,
+        title="Bathymetry",
+        title_fontsize=fontsize,
     )
 
 
@@ -1026,7 +1030,7 @@ def add_bathymetry(
     elevation,
     levels=(-1000,),
     method="contour",
-    legend_scale="both",
+    legend_scale=None,
     fontsize=13,
     zorder=5,
     transform=None,
@@ -1054,6 +1058,7 @@ def add_bathymetry(
             - topofull: pcolormesh using cmocean topo colormap; includes land and ignores :levels:
             - topofull_log: pcolormesh of log-transformed altitude/bathymetry using cmocean topo colormap; includes land and ignores :levels:
         legend_scale (string, optional): Measurement system to use for legend. Supported for shadedcontour and banded.
+            Defaults to "both" for shadedcontour and "metric" for banded.
             - metric: meters
             - imperial: fathoms
             - both: meters and fathoms
@@ -1093,6 +1098,8 @@ def add_bathymetry(
             f"{method} is not a currently supported option for bathymetry plotting. "
             f"Please choose from {', '.join(recognized_methods)}"
         )
+    if legend_scale is None:
+        legend_scale = "metric" if method == "banded" else "both"
     if legend_scale not in recognized_legends:
         raise ValueError(
             f"{legend_scale} is not a currently supported option for the legend. "
@@ -1435,6 +1442,35 @@ def add_colorbar(ax, h, label=None, fontsize=12, pad=0.02, **kwargs):
     return cb
 
 
+def add_legend(ax, *args, **kwargs):
+    """
+    Add a legend to `ax` without discarding any legend already there.
+
+    Matplotlib keeps only one "current" legend per axes -- a second `ax.legend()` call
+    normally replaces the first outright. This is common with cool_maps maps: `create()`
+    with `bathymetry_method="shadedcontour"`/`"banded"` already builds one legend, and you
+    often want a second one for your own overlaid data (markers, tracks, etc.). This
+    function preserves whatever legend is already on `ax` (re-registering it as a plain
+    artist, with clipping turned back off since `ax.add_artist()` would otherwise clip it
+    to the axes' rectangular patch -- fatal for legends positioned outside the axes, like
+    cool_maps' own bathymetry legends) before creating the new one, so you can call this
+    repeatedly to build up any number of legends on the same axes.
+
+    Args:
+        ax (matplotlib.axes): Axes to add the legend to.
+        *args: Passed through to ax.legend().
+        **kwargs: Passed through to ax.legend().
+
+    Returns:
+        matplotlib.legend.Legend: the newly created legend.
+    """
+    existing = ax.get_legend()
+    if existing is not None:
+        ax.add_artist(existing)
+        existing.set_clip_on(False)
+    return ax.legend(*args, **kwargs)
+
+
 def add_marker(ax, lon, lat, engine=None, **scatter_kwargs):
     """
     Plot one or more markers at geographic coordinates, handling engine differences automatically.
@@ -1516,6 +1552,7 @@ def create(
     extent,
     proj=None,
     data_proj=None,
+    padding=0.25,
     features=True,
     edgecolor="black",
     landcolor="tan",
@@ -1527,6 +1564,7 @@ def create(
     isobaths=(-1000, -100),
     bathymetry_method="contour",
     bathymetry_colors=None,
+    bathymetry_legend_scale=None,
     bathymetry_file=None,
     xlabel=None,
     ylabel=None,
@@ -1557,6 +1595,10 @@ def create(
         extent (tuple or list): Extent (x0, x1, y0, y1) of the map in geographic coordinates.
         proj (optional): Projection spec. Accepts Cartopy CRS objects, supported projection strings, or Basemap kwargs.
         data_proj (optional): Data CRS when using cartopy. Accepts Cartopy CRS or supported projection strings.
+        padding (float or tuple/list of 2 floats, optional): Degrees to expand the extent outward on each
+            side so ticks/data don't land right on the map edge. A single number pads longitude and
+            latitude equally; a 2-item sequence is (lon_padding, lat_padding). Defaults to 0.25. Set to 0
+            to use `extent` exactly as given.
         features (bool, optional): Add preferred map settings: colors, rivers, lakes, etc. Defaults to True.
         edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
         landcolor (str, optional): Color of land. Defaults to "tan".
@@ -1570,6 +1612,8 @@ def create(
         bathymetry_colors (list, optional): Fill colors, deepest to shallowest, when bathymetry_method="banded"
             (see add_bathymetry's `colors` argument, including its default for the 3-band case). Ignored
             for other methods.
+        bathymetry_legend_scale (str, optional): See add_bathymetry's `legend_scale` argument, including its
+            per-method defaults ("both" for shadedcontour, "metric" for banded).
         bathymetry_file (str or None): GMRT file to use for bathymetry, None to use ERDDAP.
         xlabel (str, optional): X Axis Label. Defaults to None.
         ylabel (str, optional): Y Axis Label. Defaults to None.
@@ -1594,6 +1638,8 @@ def create(
 
     engine_name = _get_engine_name(engine, ax=ax)
     extent = tuple(float(x) for x in extent)
+    if padding:
+        extent = pad_extent(extent, padding)
     backend = _get_backend(engine_name)
 
     ctx = backend.create_axes(extent, proj, data_proj, ax, figsize, coast, basemap_kwargs)
@@ -1626,6 +1672,7 @@ def create(
             "zorder": zorder + bathy_zorder_add,
             "method": bathymetry_method,
             "colors": bathymetry_colors,
+            "legend_scale": bathymetry_legend_scale,
             "engine": engine_name,
         }
         if ctx["data_crs"] is not None:

@@ -42,6 +42,68 @@ def test_set_engine_invalid():
         cplt.set_engine("not-real")
 
 
+def test_pad_extent_float():
+    from cool_maps.calc import pad_extent
+
+    assert pad_extent(extent, 0.25) == pytest.approx((-99.25, -78.75, 17.75, 31.25))
+
+
+def test_pad_extent_lon_lat_pair():
+    from cool_maps.calc import pad_extent
+
+    assert pad_extent(extent, (1, 0.5)) == pytest.approx((-100.0, -78.0, 17.5, 31.5))
+
+
+def test_pad_extent_zero_is_noop():
+    from cool_maps.calc import pad_extent
+
+    assert pad_extent(extent, 0) == pytest.approx(tuple(float(x) for x in extent))
+
+
+def test_pad_extent_invalid_length_raises():
+    from cool_maps.calc import pad_extent
+
+    with pytest.raises(ValueError):
+        pad_extent(extent, (1, 2, 3))
+
+
+@pytest.mark.skipif("cartopy" not in cplt.available_engines(), reason="Cartopy engine not available")
+def test_create_default_padding_expands_extent():
+    ccrs = pytest.importorskip("cartopy.crs")
+    fig, ax = cplt.create(extent=extent, ticks=False, gridlines=False, bathymetry=False)
+    try:
+        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
+        assert (x0, x1, y0, y1) == pytest.approx(
+            (extent[0] - 0.25, extent[1] + 0.25, extent[2] - 0.25, extent[3] + 0.25), abs=1e-6
+        )
+    finally:
+        plt.close(fig)
+
+
+@pytest.mark.skipif("cartopy" not in cplt.available_engines(), reason="Cartopy engine not available")
+def test_create_padding_zero_matches_extent_exactly():
+    ccrs = pytest.importorskip("cartopy.crs")
+    fig, ax = cplt.create(extent=extent, padding=0, ticks=False, gridlines=False, bathymetry=False)
+    try:
+        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
+        assert (x0, x1, y0, y1) == pytest.approx(tuple(float(x) for x in extent), abs=1e-6)
+    finally:
+        plt.close(fig)
+
+
+@pytest.mark.skipif("cartopy" not in cplt.available_engines(), reason="Cartopy engine not available")
+def test_create_padding_lon_lat_pair():
+    ccrs = pytest.importorskip("cartopy.crs")
+    fig, ax = cplt.create(extent=extent, padding=(1, 0.5), ticks=False, gridlines=False, bathymetry=False)
+    try:
+        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
+        assert (x0, x1, y0, y1) == pytest.approx(
+            (extent[0] - 1, extent[1] + 1, extent[2] - 0.5, extent[3] + 0.5), abs=1e-6
+        )
+    finally:
+        plt.close(fig)
+
+
 @pytest.mark.skipif("basemap" not in cplt.available_engines(), reason="Basemap engine not available")
 def test_map_create_basemap_engine():
     cplt.set_engine("basemap")
@@ -160,6 +222,23 @@ def test_map_create_bathymetry_banded_default_colors():
     # bathymetry_method="banded" should work with no bathymetry_colors= at all.
     cplt.create(extent=extent, bathymetry=True, bathymetry_method="banded")
     cplt.export_fig(output_path, "map_bathymetry_banded_default_colors")
+
+
+def test_map_create_bathymetry_banded_legend_defaults_to_metric():
+    # banded's legend should default to meters only (no fathoms), unlike shadedcontour's
+    # "both" default -- distinct per-method defaults for the same legend_scale= parameter.
+    fig, ax = cplt.create(extent=extent, bathymetry=True, bathymetry_method="banded", ticks=False)
+    labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert labels and all("fth" not in label for label in labels)
+
+
+def test_map_create_bathymetry_banded_legend_scale_override():
+    fig, ax = cplt.create(
+        extent=extent, bathymetry=True, bathymetry_method="banded", ticks=False,
+        bathymetry_legend_scale="both",
+    )
+    labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert labels and all("fth" in label for label in labels)
 
 
 @pytest.mark.skipif("basemap" not in cplt.available_engines(), reason="Basemap engine not available")
@@ -339,3 +418,47 @@ def test_basemap_escape_hatch_double_bind_safety():
     finally:
         if fig:
             plt.close(fig)
+
+
+def test_add_legend_preserves_previous_legend():
+    import matplotlib.legend
+
+    fig, ax = cplt.create(extent=extent, bathymetry=True, bathymetry_method="banded", ticks=False)
+    try:
+        first_legend = ax.get_legend()
+        assert first_legend is not None
+
+        sc = ax.scatter([-90.0], [25.0], label="point")
+        second_legend = cplt.add_legend(ax, handles=[sc], loc="upper left")
+
+        legends = [c for c in ax.get_children() if isinstance(c, matplotlib.legend.Legend)]
+        assert len(legends) == 2
+        assert first_legend in legends
+        assert second_legend in legends
+    finally:
+        plt.close(fig)
+
+
+def test_add_legend_unclips_preserved_legend():
+    # Regression test: ax.add_artist() clips any artist without an existing clip path to
+    # the axes' rectangular patch, which would make the banded/shadedcontour legend (drawn
+    # below the axes via bbox_to_anchor) invisible when preserved naively. add_legend()
+    # must undo that.
+    fig, ax = cplt.create(extent=extent, bathymetry=True, bathymetry_method="banded", ticks=False)
+    try:
+        first_legend = ax.get_legend()
+        sc = ax.scatter([-90.0], [25.0], label="point")
+        cplt.add_legend(ax, handles=[sc], loc="upper left")
+        assert first_legend.get_clip_on() is False
+    finally:
+        plt.close(fig)
+
+
+def test_add_legend_with_no_existing_legend():
+    fig, ax = cplt.create(extent=extent, bathymetry=False, ticks=False)
+    try:
+        sc = ax.scatter([-90.0], [25.0], label="point")
+        legend = cplt.add_legend(ax, handles=[sc], loc="upper left")
+        assert legend is ax.get_legend()
+    finally:
+        plt.close(fig)

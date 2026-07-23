@@ -41,6 +41,18 @@ pass in an existing axes with ``ax=``. ``ax`` is a normal matplotlib axes -- you
 matplotlib method on it (``ax.set_title(...)``, ``ax.legend()``, etc.) in addition to the
 ``cool_maps``-specific behavior described below.
 
+By default, ``create()`` expands your ``extent`` outward by ``padding=0.25`` degrees on every side before
+using it, so ticks (and any data you plot right at the edge of your bounding box) don't land exactly on
+the border of the map. Pass a single number to change the amount, a ``(lon_padding, lat_padding)`` pair
+for asymmetric padding, or ``padding=0`` to use ``extent`` exactly as given::
+
+    cplt.create(extent, padding=0)                # no padding -- old behavior
+    cplt.create(extent, padding=0.5)              # half a degree on every side
+    cplt.create(extent, padding=(1, 0.25))        # 1 degree lon, 0.25 degree lat
+
+The padded extent is what's actually used to build the axes, so it also determines the tick positions
+(:func:`cplt.add_ticks`) and, when ``bathymetry=True``, the bounding box that's downloaded.
+
 
 Projections
 ===========
@@ -196,6 +208,19 @@ idea::
 components on ``lon``/``lat`` (or ``x``/``y``) coordinates::
 
     cplt.add_currents(ax, ds, coarsen=3)
+
+If your map already has a legend (e.g. from ``bathymetry_method="shadedcontour"`` or ``"banded"``) and you
+want a second one for your own overlaid data, use :func:`cplt.add_legend` in place of ``ax.legend()`` --
+a plain second ``ax.legend()`` call replaces the first legend outright. ``add_legend()`` preserves
+whatever legend is already there (handling a couple of non-obvious matplotlib details involved in doing
+that correctly) before creating the new one, so you can call it repeatedly to build up any number of
+legends on the same axes::
+
+    sc = ax.scatter(argo_lon, argo_lat, marker="^", color="red", label="Argo surfacing")
+    cplt.add_legend(ax, handles=[sc], loc="upper left")
+
+See ``notebooks/banded_bathymetry_example.ipynb`` for a complete walkthrough, including how to
+reposition each legend independently.
 
 
 .. _engines:
