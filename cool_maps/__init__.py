@@ -20,3 +20,6 @@ from .plot import (
     available_engines,
 )
 from .download import get_bathymetry
+
+from . import _version
+__version__ = _version.get_versions()['version']
