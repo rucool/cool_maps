@@ -26,7 +26,7 @@ https://cool-maps.readthedocs.io/en/latest/.
 Features
 ========
 
-* One function, :func:`cplt.create`, to build a complete map from just an ``extent`` -- coastlines, land/
+* One function, ``cplt.create()``, to build a complete map from just an ``extent`` -- coastlines, land/
   ocean colors, ticks, and borders included by default.
 * Built-in bathymetry download and plotting (contours, shaded contours, or continuous depth shading),
   and ocean current quiver plots from ``xarray`` datasets. Large extents are automatically tiled to stay
@@ -63,7 +63,7 @@ but you can select Basemap after installing it::
     >>> import cool_maps.plot as cplt
     >>> cplt.set_engine('basemap')
 
-You can also set ``COOL_MAPS_ENGINE=basemap`` in your environment before importing :mod:`cool_maps.plot`,
+You can also set ``COOL_MAPS_ENGINE=basemap`` in your environment before importing ``cool_maps.plot``,
 or pass ``engine=`` to any individual call without touching the global default::
 
     >>> cplt.create(extent, engine="basemap")
