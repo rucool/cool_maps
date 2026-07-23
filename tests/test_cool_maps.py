@@ -241,6 +241,25 @@ def test_map_create_bathymetry_banded_legend_scale_override():
     assert labels and all("fth" in label for label in labels)
 
 
+def test_banded_fill_zorder_stays_below_land_lines_above():
+    # Regression test: the banded fill (contourf) must sit below land (add_features draws
+    # land at zorder+10, default zorder=0), so a mismatch between the GEBCO bathymetry grid
+    # and cartopy's separately-sourced coastline vector doesn't leave stray fill visible
+    # over land. The isobath lines (contour) must stay above land so they render crisply,
+    # matching the plain "contour" method's behavior.
+    fig, ax = cplt.create(extent=extent, bathymetry=True, bathymetry_method="banded", ticks=False)
+    try:
+        # Cartopy wraps these as GeoContourSet, basemap/plain matplotlib as QuadContourSet;
+        # both live in ax.collections rather than ax.get_children() under cartopy.
+        contour_sets = [c for c in ax.collections if "ContourSet" in type(c).__name__]
+        assert len(contour_sets) == 2  # one contourf (fill), one contour (isobath lines)
+        zorders = sorted(c.get_zorder() for c in contour_sets)
+        assert zorders[0] < 10, "banded fill must be drawn below land"
+        assert zorders[1] > 10, "banded isobath lines must be drawn above land"
+    finally:
+        plt.close(fig)
+
+
 @pytest.mark.skipif("basemap" not in cplt.available_engines(), reason="Basemap engine not available")
 def test_map_create_bathymetry_banded_basemap():
     # Regression test: this method combines add_bathymetry's contour + contourf/quiver-style

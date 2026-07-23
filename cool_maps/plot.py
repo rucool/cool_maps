@@ -1185,6 +1185,12 @@ def add_bathymetry(
                 f"for bathymetry_method='banded'; got {len(colors)}."
             )
 
+        # The fill is drawn at the caller's zorder (create() keeps this low, below land),
+        # so that wherever the GEBCO bathymetry grid disagrees slightly with cartopy's
+        # separately-sourced coastline vector, land redraws over any stray fill rather
+        # than the fill bleeding onto what's visually mapped as land. The isobath lines are
+        # boosted well above that, independent of the fill's zorder, so they stay crisp and
+        # visible over land/borders the same way the plain "contour" method's lines do.
         h = backend.contourf(ax, lons, lats, elevation, levels=edges, colors=list(colors), zorder=zorder, **tkwargs)
 
         lines = backend.contour(
@@ -1196,7 +1202,7 @@ def add_bathymetry(
             linewidths=0.75,
             alpha=0.5,
             colors="k",
-            zorder=zorder + 0.1,
+            zorder=zorder + 90,
             transform_first=transform_first,
             **tkwargs,
         )
@@ -1661,7 +1667,13 @@ def create(
         )
 
     if bathymetry:
-        if "contour" in bathymetry_method or bathymetry_method == "banded":
+        if bathymetry_method == "banded":
+            # Keep the fill below land (add_features draws land at zorder+10) so a
+            # mismatch between the GEBCO bathymetry grid and cartopy's coastline vector
+            # doesn't leave stray fill visible over land; add_bathymetry boosts the
+            # isobath lines back above land/features independently of this base.
+            bathy_zorder_add = 5
+        elif "contour" in bathymetry_method:
             bathy_zorder_add = 99
         elif "topofull" in bathymetry_method:
             bathy_zorder_add = 20
