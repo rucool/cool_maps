@@ -11,7 +11,7 @@ Welcome to cool_maps's documentation!
    :caption: Contents:
 
    readme
-   usage
+   tutorial
    development
    authors
    history
