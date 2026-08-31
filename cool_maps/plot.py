@@ -48,6 +48,33 @@ def _get_cartopy_modules():
     return _cartopy_crs, _cartopy_feature
 
 
+def _ensure_gshhs_mirror_downloader():
+    """
+    Point cartopy's GSHHS ("full" resolution coastline) downloader at a working mirror.
+
+    cartopy's built-in URL (NOAA's ngdc.noaa.gov) and its two hardcoded fallback URLs
+    currently all 404 -- NOAA reorganized ngdc.noaa.gov's shorelines pages without
+    updating cartopy's hardcoded links. Until upstream cartopy fixes this, route the
+    one-time GSHHS download through the dataset maintainer's own mirror instead, so
+    coast="full" keeps working. Safe/cheap to call repeatedly; only affects the
+    ("shapefiles", "gshhs") downloader's URL, not whether a download happens at all
+    (cartopy still only downloads once per data_dir, then caches the result).
+    """
+    import cartopy
+    from cartopy.io.shapereader import GSHHSShpDownloader
+
+    key = ("shapefiles", "gshhs")
+    downloader = cartopy.config["downloaders"].get(key)
+    if not isinstance(downloader, GSHHSShpDownloader):
+        downloader = GSHHSShpDownloader.default_downloader()
+        cartopy.config["downloaders"][key] = downloader
+
+    downloader.url_template = (
+        "https://www.soest.hawaii.edu/pwessel/gshhg/"
+        f"gshhg-shp-{GSHHSShpDownloader.gshhs_version}.zip"
+    )
+
+
 def _get_basemap_class():
     if _Basemap is None:
         raise ImportError(
@@ -557,6 +584,7 @@ class _CartopyBackend:
         )
 
         if coast == "full":
+            _ensure_gshhs_mirror_downloader()
             land_feature = cfeature.GSHHSFeature(scale="full")
         elif coast == "high":
             land_feature = cfeature.NaturalEarthFeature("physical", "land", "10m")
@@ -1344,7 +1372,7 @@ def add_features(
     edgecolor="black",
     landcolor="tan",
     oceancolor=None,
-    coast="full",
+    coast="high",
     zorder=0,
     engine=None,
 ):
@@ -1356,7 +1384,10 @@ def add_features(
         edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
         landcolor (str, optional): Color of land. Defaults to "tan".
         oceancolor (str, optional): Color of ocean. Defaults to cartopy default water color
-        coast (str, optional): Coastline resolution.
+        coast (str, optional): Coastline resolution: "full" (GSHHS), "high" (Natural Earth 10m),
+            "mid" (50m), "low"/"crude" (110m). Defaults to "high". "full" downloads a ~140MB
+            GSHHS archive the first time it's used in a given data_dir (see
+            `_ensure_gshhs_mirror_downloader`); the others use Natural Earth data instead.
         zorder (int, optional): Drawing order.
         engine (str, optional): Override active mapping engine
     """
@@ -1563,7 +1594,7 @@ def create(
     edgecolor="black",
     landcolor="tan",
     oceancolor=None,
-    coast="full",
+    coast="high",
     ticks=True,
     gridlines=False,
     bathymetry=False,
@@ -1609,7 +1640,10 @@ def create(
         edgecolor (str, optional): Color of edges of polygons. Defaults to "black".
         landcolor (str, optional): Color of land. Defaults to "tan".
         oceancolor (str, optional): Color of the ocean. Defaults to engine default.
-        coast (str, optional): Coastline resolution.
+        coast (str, optional): Coastline resolution: "full" (GSHHS), "high" (Natural Earth 10m),
+            "mid" (50m), "low"/"crude" (110m). Defaults to "high". "full" downloads a ~140MB
+            GSHHS archive the first time it's used in a given data_dir (see
+            `_ensure_gshhs_mirror_downloader`); the others use Natural Earth data instead.
         ticks (bool, optional): Calculate appropriately spaced ticks. Defaults to True.
         gridlines (bool, optional): Add gridlines. Defaults to False.
         bathymetry (bool or tuple, optional): Download and plot bathymetry on map. Defaults to False.
